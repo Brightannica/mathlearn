@@ -10,36 +10,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Flame, Trophy, Zap, Crown, Medal, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboardData } from "@/hooks/use-supabase-data";
+import { fetchJSON } from "@/hooks/use-supabase-data";
 
 type Student = {
   rank: number;
+  id: string;
   name: string;
   grade: string;
   xp: number;
   streak: number;
-  avatar: string;
-  isYou?: boolean;
-  top?: boolean;
+  longestStreak: number;
+  avatar: string | null;
+  isYou: boolean;
   weeklyXP?: number;
 };
-
-const sampleStudents: Student[] = [
-  { rank: 1, name: "Emma W.", grade: "8", xp: 5420, streak: 21, avatar: "", top: true, weeklyXP: 420 },
-  { rank: 2, name: "Liam C.", grade: "10", xp: 4980, streak: 14, avatar: "", weeklyXP: 380 },
-  { rank: 3, name: "Sofia M.", grade: "6", xp: 4510, streak: 9, avatar: "", weeklyXP: 350 },
-  { rank: 4, name: "Noah B.", grade: "9", xp: 4120, streak: 7, avatar: "", weeklyXP: 290 },
-  { rank: 5, name: "Ava P.", grade: "7", xp: 3890, streak: 12, avatar: "", weeklyXP: 260 },
-  { rank: 6, name: "Oliver H.", grade: "11", xp: 2940, streak: 5, avatar: "", weeklyXP: 180 },
-  { rank: 7, name: "Mia S.", grade: "5", xp: 2710, streak: 3, avatar: "", weeklyXP: 150 },
-];
-
-const weeklyStudents: Student[] = [
-  { rank: 1, name: "Emma W.", grade: "8", xp: 420, streak: 21, avatar: "", top: true },
-  { rank: 2, name: "Liam C.", grade: "10", xp: 380, streak: 14, avatar: "" },
-  { rank: 3, name: "Sofia M.", grade: "6", xp: 350, streak: 9, avatar: "" },
-  { rank: 4, name: "Noah B.", grade: "9", xp: 290, streak: 7, avatar: "" },
-  { rank: 5, name: "Ava P.", grade: "7", xp: 260, streak: 12, avatar: "" },
-];
 
 const TopCard = memo(function TopCard({ rank, name, xp, icon, gradient, border }: { rank: number; name: string; xp: number; icon: React.ReactNode; gradient: string; border: string }) {
   return (
@@ -67,7 +51,7 @@ const StudentCard = memo(function StudentCard({
       className={cn(
         "transition-all hover:shadow-md",
         student.isYou && "border-primary bg-primary/5",
-        student.top && "border-yellow-500/30"
+        student.rank <= 3 && "border-yellow-500/30"
       )}
     >
       <CardContent className="pt-4">
@@ -102,38 +86,61 @@ const StudentCard = memo(function StudentCard({
 StudentCard.displayName = "StudentCard";
 
 export default function LeaderboardPage() {
-  const { stats, loading } = useDashboardData();
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { stats, loading: dashboardLoading } = useDashboardData();
+  const [globalStudents, setGlobalStudents] = useState<Student[]>([]);
+  const [weeklyStudents, setWeeklyStudents] = useState<Student[]>([]);
+  const [gradeStudents, setGradeStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedGrade, setSelectedGrade] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("global");
+
+  const loadLeaderboard = useCallback(async (type: string, grade?: string) => {
+    setLoading(true);
+    try {
+      const url = grade && grade !== "all" ? `/api/leaderboard?type=${type}&grade=${encodeURIComponent(grade)}` : `/api/leaderboard?type=${type}`;
+      const data = await fetchJSON<Student[]>(url);
+      if (type === "global") setGlobalStudents(data);
+      else if (type === "weekly") setWeeklyStudents(data);
+      else if (type === "grade") setGradeStudents(data);
+    } catch (err) {
+      console.error("Failed to load leaderboard:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleActiveTabChange = useCallback((newTab: string) => {
+    setActiveTab(newTab);
+    loadLeaderboard(newTab, newTab === "grade" ? selectedGrade : undefined);
+  }, [selectedGrade, loadLeaderboard]);
+
+  const handleGradeChange = useCallback((newGrade: string) => {
+    setSelectedGrade(newGrade);
+    loadLeaderboard(activeTab, newGrade === "all" ? undefined : newGrade);
+  }, [activeTab, loadLeaderboard]);
 
   const handleRefresh = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
+    loadLeaderboard(activeTab, activeTab === "grade" ? selectedGrade : undefined);
+  }, [activeTab, selectedGrade, loadLeaderboard]);
 
   const currentUser: Student | null = stats
     ? {
-        rank: 6,
+        rank: 0,
+        id: "you",
         name: "You",
         grade: "9",
         xp: stats.totalXP,
         streak: stats.currentStreak,
-        avatar: "",
+        longestStreak: stats.longestStreak,
+        avatar: null,
         isYou: true,
         weeklyXP: Math.round(stats.totalXP * 0.05),
       }
     : null;
 
-  const globalStudents: Student[] = currentUser
-    ? [...sampleStudents, currentUser].sort((a, b) => b.xp - a.xp).map((s, i) => ({ ...s, rank: i + 1 }))
-    : sampleStudents;
-
-  const gradeFiltered = selectedGrade === "all"
-    ? globalStudents
-    : globalStudents.filter((s) => s.grade === selectedGrade).map((s, i) => ({ ...s, rank: i + 1 }));
-
-  const weeklyRanked = [...weeklyStudents, ...(currentUser ? [currentUser] : [])]
-    .sort((a, b) => (b.weeklyXP ?? 0) - (a.weeklyXP ?? 0))
-    .map((s, i) => ({ ...s, rank: i + 1 }));
+  const displayGlobal = currentUser ? [...globalStudents.filter(s => !s.isYou), currentUser].sort((a, b) => b.xp - a.xp).map((s, i) => ({ ...s, rank: i + 1 })) : globalStudents;
+  const displayWeekly = currentUser ? [...weeklyStudents.filter(s => !s.isYou), currentUser].sort((a, b) => (b.weeklyXP || 0) - (a.weeklyXP || 0)).map((s, i) => ({ ...s, rank: i + 1 })) : weeklyStudents;
+  const displayGrade = currentUser ? [...gradeStudents.filter(s => !s.isYou), currentUser].sort((a, b) => b.xp - a.xp).map((s, i) => ({ ...s, rank: i + 1 })) : gradeStudents;
 
   return (
     <div className="space-y-6 animate-in fade-in">
@@ -144,21 +151,21 @@ export default function LeaderboardPage() {
           </h1>
           <p className="text-muted-foreground mt-1">See how you rank among fellow learners</p>
         </div>
-        <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+        <Button variant="outline" onClick={handleRefresh} disabled={loading || dashboardLoading}>
           <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
           Refresh
         </Button>
       </div>
 
-      {stats && (
+      {(displayGlobal.length >= 3) && (
         <div className="grid gap-4 sm:grid-cols-3">
-          <TopCard rank={1} name={globalStudents[0]?.name ?? "Emma W."} xp={globalStudents[0]?.xp ?? 5420} icon={<Trophy className="h-6 w-6 text-yellow-500" />} gradient="from-yellow-400/20 to-yellow-500/5" border="border-yellow-500/40" />
-          <TopCard rank={2} name={globalStudents[1]?.name ?? "Liam C."} xp={globalStudents[1]?.xp ?? 4980} icon={<Medal className="h-6 w-6 text-slate-400" />} gradient="from-slate-400/20 to-slate-500/5" border="border-slate-400/40" />
-          <TopCard rank={3} name={globalStudents[2]?.name ?? "Sofia M."} xp={globalStudents[2]?.xp ?? 4510} icon={<Medal className="h-6 w-6 text-amber-700" />} gradient="from-amber-700/20 to-amber-900/5" border="border-amber-700/40" />
+          <TopCard rank={displayGlobal[0]?.rank ?? 1} name={displayGlobal[0]?.name ?? "—"} xp={displayGlobal[0]?.xp ?? 0} icon={<Trophy className="h-6 w-6 text-yellow-500" />} gradient="from-yellow-400/20 to-yellow-500/5" border="border-yellow-500/40" />
+          <TopCard rank={displayGlobal[1]?.rank ?? 2} name={displayGlobal[1]?.name ?? "—"} xp={displayGlobal[1]?.xp ?? 0} icon={<Medal className="h-6 w-6 text-slate-400" />} gradient="from-slate-400/20 to-slate-500/5" border="border-slate-400/40" />
+          <TopCard rank={displayGlobal[2]?.rank ?? 3} name={displayGlobal[2]?.name ?? "—"} xp={displayGlobal[2]?.xp ?? 0} icon={<Medal className="h-6 w-6 text-amber-700" />} gradient="from-amber-700/20 to-amber-900/5" border="border-amber-700/40" />
         </div>
       )}
 
-      <Tabs defaultValue="global" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleActiveTabChange} className="w-full">
         <TabsList>
           <TabsTrigger value="global">Global</TabsTrigger>
           <TabsTrigger value="grade">By Grade</TabsTrigger>
@@ -170,19 +177,25 @@ export default function LeaderboardPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <RefreshCw className="h-8 w-8 text-muted-foreground mx-auto mb-3 animate-spin" />
-                <p className="text-sm text-muted-foreground">Loading your stats...</p>
+                <p className="text-sm text-muted-foreground">Loading leaderboard...</p>
+              </CardContent>
+            </Card>
+          ) : displayGlobal.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                No students yet. Be the first to earn XP!
               </CardContent>
             </Card>
           ) : (
-            globalStudents.map((s) => (
-              <StudentCard key={`${s.rank}-${refreshKey}`} student={s} />
+            displayGlobal.map((s) => (
+              <StudentCard key={`${s.id}-${s.rank}`} student={s} />
             ))
           )}
         </TabsContent>
 
         <TabsContent value="grade" className="space-y-4">
           <div className="flex items-center gap-2">
-            <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+            <Select value={selectedGrade} onValueChange={handleGradeChange}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Select grade" />
               </SelectTrigger>
@@ -194,23 +207,31 @@ export default function LeaderboardPage() {
               </SelectContent>
             </Select>
           </div>
-          {gradeFiltered.length === 0 ? (
+          {displayGrade.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-sm text-muted-foreground">
                 No students found for this grade.
               </CardContent>
             </Card>
           ) : (
-            gradeFiltered.map((s) => (
-              <StudentCard key={`${s.rank}-${refreshKey}-${selectedGrade}`} student={s} />
+            displayGrade.map((s) => (
+              <StudentCard key={`${s.id}-${s.rank}`} student={s} />
             ))
           )}
         </TabsContent>
 
         <TabsContent value="weekly" className="space-y-2">
-          {weeklyRanked.map((s) => (
-            <StudentCard key={`weekly-${s.rank}-${refreshKey}`} student={s} />
-          ))}
+          {displayWeekly.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                No weekly activity yet. Complete some exercises to appear here!
+              </CardContent>
+            </Card>
+          ) : (
+            displayWeekly.map((s) => (
+              <StudentCard key={`${s.id}-${s.rank}`} student={s} />
+            ))
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -21,7 +21,7 @@ interface ForumPost {
   author_avatar: string | null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getSession();
 
@@ -29,7 +29,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const sort = searchParams.get("sort");
+    const filter = searchParams.get("filter");
+
+    let query = supabase
       .from("forum_posts")
       .select(
         `
@@ -46,8 +50,17 @@ export async function GET() {
         created_at,
         updated_at
       `
-      )
-      .order("created_at", { ascending: false });
+      );
+
+    if (sort === "top") {
+      query = query.order("views", { ascending: false });
+    } else if (filter === "unanswered") {
+      query = query.order("created_at", { ascending: false });
+    } else {
+      query = query.order("created_at", { ascending: false });
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching posts:", error);
@@ -88,6 +101,21 @@ export async function GET() {
           post.author_avatar = user.image ?? null;
         }
       });
+    }
+
+    if (filter === "unanswered") {
+      const postIds = posts.map(p => p.id);
+      if (postIds.length > 0) {
+        const { data: replyCounts } = await supabase
+          .from("forum_replies")
+          .select("post_id")
+          .in("post_id", postIds);
+
+        const replyPostIds = new Set((replyCounts ?? []).map(r => r.post_id));
+        const filtered = posts.filter(p => !replyPostIds.has(p.id));
+        return NextResponse.json(filtered);
+      }
+      return NextResponse.json([]);
     }
 
     return NextResponse.json(posts);

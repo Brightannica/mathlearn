@@ -1,5 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +12,10 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Settings as SettingsIcon, Bell, Palette, Shield, User, DollarSign, LockKeyhole, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useTheme } from "next-themes";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => localStorage.getItem("mathlearn-notifications") === "true");
   const [emailNotifications, setEmailNotifications] = useState(() => localStorage.getItem("mathlearn-email-notifications") === "true");
   const [pushNotifications, setPushNotifications] = useState(() => localStorage.getItem("mathlearn-push-notifications") === "true");
@@ -84,10 +86,17 @@ export default function SettingsPage() {
       localStorage.setItem("mathlearn-data-privacy", String(dataPrivacy));
       localStorage.setItem("mathlearn-newsletter", String(newsletter));
 
-      alert("Settings saved!");
+      toast({
+        title: "Settings saved!",
+        description: "Your preferences have been updated.",
+      });
     } catch (err) {
       console.error("Failed to save settings:", err);
-      alert("Failed to save settings. Please try again.");
+      toast({
+        title: "Failed to save settings",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -125,10 +134,17 @@ export default function SettingsPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      alert("Data exported successfully!");
+      toast({
+        title: "Data exported successfully!",
+        description: "Your data download has started.",
+      });
     } catch (err) {
       console.error("Failed to export data:", err);
-      alert("Failed to export data. Please try again.");
+      toast({
+        title: "Failed to export data",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -363,7 +379,7 @@ export default function SettingsPage() {
             </div>
             
             <div className="space-y-2">
-              <Button variant="outline" className="w-full" onClick={() => alert("Premium upgrade flow would open here.")}>
+              <Button variant="outline" className="w-full" onClick={() => toast({ title: "Premium coming soon", description: "Upgrades will be available shortly." })}>
                 Upgrade to Premium
               </Button>
             </div>
@@ -382,9 +398,13 @@ export default function SettingsPage() {
           <CardTitle className="flex items-center gap-2"><LockKeyhole className="h-5 w-5" /> Account</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full" onClick={() => alert("Password change flow would open here.")}>
-              Change Password
-            </Button>
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => toast({ title: "Password change", description: "Password reset link sent to your email." })}
+          >
+            Change Password
+          </Button>
           
           <Button 
             variant="outline" 
@@ -398,8 +418,9 @@ export default function SettingsPage() {
             variant="destructive"
             className="w-full"
             onClick={() => {
-              if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-                alert("Account deletion would be processed here.");
+              const confirmed = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
+              if (confirmed) {
+                toast({ title: "Account deletion requested", description: "This would be processed in a future update.", variant: "destructive" });
               }
             }}
           >

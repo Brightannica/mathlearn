@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, memo } from "react";
+import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageSquare, ThumbsUp, ThumbsDown, Eye, Plus, Search, Tag, AlertCircle, X } from "lucide-react";
+import { MessageSquare, ThumbsUp, ThumbsDown, Eye, Plus, Search, Tag, AlertCircle, X, CheckCircle2, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRealtime } from "@/hooks/use-realtime";
 
@@ -338,6 +338,11 @@ export default function CommunityPage() {
   const [replyToContent, setReplyToContent] = useState("");
   const [submittingReplyTo, setSubmittingReplyTo] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("recent");
+  const [topPosts, setTopPosts] = useState<Post[]>([]);
+  const [unansweredPosts, setUnansweredPosts] = useState<Post[]>([]);
+  const [loadingTop, setLoadingTop] = useState(false);
+  const [loadingUnanswered, setLoadingUnanswered] = useState(false);
   const mountedRef = useRef(true);
   const userCacheRef = useRef<Map<string, { name: string; image: string | null }>>(new Map());
 
@@ -397,6 +402,46 @@ export default function CommunityPage() {
       mountedRef.current = false;
     };
   }, [setRealtimePosts]);
+
+  const loadTopPosts = useCallback(async () => {
+    setLoadingTop(true);
+    try {
+      const res = await fetch("/api/community?sort=top");
+      if (!res.ok) throw new Error(`Failed to fetch top posts: ${res.status}`);
+      const data: ApiPost[] = await res.json();
+      if (mountedRef.current) {
+        setTopPosts(data.map(mapApiPost));
+      }
+    } catch (err) {
+      if (mountedRef.current) {
+        console.error("Failed to load top posts:", err);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoadingTop(false);
+      }
+    }
+  }, []);
+
+  const loadUnansweredPosts = useCallback(async () => {
+    setLoadingUnanswered(true);
+    try {
+      const res = await fetch("/api/community?filter=unanswered");
+      if (!res.ok) throw new Error(`Failed to fetch unanswered posts: ${res.status}`);
+      const data: ApiPost[] = await res.json();
+      if (mountedRef.current) {
+        setUnansweredPosts(data.map(mapApiPost));
+      }
+    } catch (err) {
+      if (mountedRef.current) {
+        console.error("Failed to load unanswered posts:", err);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoadingUnanswered(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!selectedPostId) return;
@@ -788,7 +833,7 @@ export default function CommunityPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="recent" className="w-full">
+      <Tabs value={activeTab} onValueChange={(newTab) => { setActiveTab(newTab); if (newTab === "top") loadTopPosts(); if (newTab === "unanswered") loadUnansweredPosts(); }} className="w-full">
         <TabsList>
           <TabsTrigger value="recent">Recent</TabsTrigger>
           <TabsTrigger value="top">Top</TabsTrigger>
@@ -821,12 +866,40 @@ export default function CommunityPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="top">
-          <p className="text-muted-foreground text-sm">Top posts ranked by votes.</p>
+        <TabsContent value="top" className="space-y-3">
+          {loadingTop ? (
+            Array.from({ length: 3 }).map((_, i) => <PostSkeleton key={i} />)
+          ) : topPosts.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-lg font-medium">No top posts yet</p>
+                <p className="text-muted-foreground text-sm mt-1">Posts with the most views will appear here.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            topPosts.map((p) => (
+              <PostCard key={p.id} post={p} onVote={handleVote} />
+            ))
+          )}
         </TabsContent>
 
-        <TabsContent value="unanswered">
-          <p className="text-muted-foreground text-sm">Questions waiting for an answer.</p>
+        <TabsContent value="unanswered" className="space-y-3">
+          {loadingUnanswered ? (
+            Array.from({ length: 3 }).map((_, i) => <PostSkeleton key={i} />)
+          ) : unansweredPosts.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <CheckCircle2 className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-lg font-medium">All caught up!</p>
+                <p className="text-muted-foreground text-sm mt-1">No unanswered questions right now. Great job community!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            unansweredPosts.map((p) => (
+              <PostCard key={p.id} post={p} onVote={handleVote} />
+            ))
+          )}
         </TabsContent>
       </Tabs>
 

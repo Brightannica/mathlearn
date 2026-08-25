@@ -94,6 +94,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to complete challenge" }, { status: 500 });
     }
 
+    if (challenge.xp_bonus > 0) {
+      const { data: xpHistory } = await supabase
+        .from("xp_history")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .eq("source_type", "daily_challenge")
+        .eq("source_id", challenge.id)
+        .single();
+
+      if (!xpHistory) {
+        await supabase.from("xp_history").insert({
+          user_id: session.user.id,
+          amount: challenge.xp_bonus,
+          reason: `Completed daily challenge: ${challenge.title}`,
+          source_type: "daily_challenge",
+          source_id: challenge.id,
+        });
+      }
+    }
+
     return NextResponse.json(completion, { status: 201 });
   } catch (error) {
     console.error("API error:", error);

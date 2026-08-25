@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Award, Flame, Star, Zap, Target, Lock, CheckCircle2 } from "lucide-react";
+import { Trophy, Award, Flame, Star, Zap, Target, Lock, CheckCircle2, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useAchievements } from "@/hooks/use-supabase-data";
@@ -17,14 +17,35 @@ const rarityColors: Record<string, string> = {
   legendary: "from-amber-400 to-orange-500",
 };
 
-const badges = [
-  { name: "Geometry Guru", icon: Star, color: "bg-green-500" },
-  { name: "Fraction Hero", icon: Target, color: "bg-blue-500" },
-  { name: "Stats Whiz", icon: Award, color: "bg-purple-500" },
-  { name: "Calc Crusher", icon: Zap, color: "bg-red-500" },
-  { name: "Streak Star", icon: Flame, color: "bg-orange-500" },
-  { name: "Quiz Champion", icon: Trophy, color: "bg-yellow-500" },
-];
+const badgeIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  "Geometry Guru": Star,
+  "Fraction Hero": Target,
+  "Stats Whiz": Award,
+  "Calc Crusher": Zap,
+  "Streak Star": Flame,
+  "Quiz Champion": Trophy,
+  "Algebra Explorer": Star,
+  "Streak Starter": Flame,
+  "Lesson Master": BookOpen,
+  "Practice Pro": Target,
+  "Speed Demon": Zap,
+  "Perfectionist": Award,
+};
+
+const badgeColorMap: Record<string, string> = {
+  "Geometry Guru": "bg-green-500",
+  "Fraction Hero": "bg-blue-500",
+  "Stats Whiz": "bg-purple-500",
+  "Calc Crusher": "bg-red-500",
+  "Streak Star": "bg-orange-500",
+  "Quiz Champion": "bg-yellow-500",
+  "Algebra Explorer": "bg-indigo-500",
+  "Streak Starter": "bg-orange-400",
+  "Lesson Master": "bg-emerald-500",
+  "Practice Pro": "bg-cyan-500",
+  "Speed Demon": "bg-rose-500",
+  "Perfectionist": "bg-amber-500",
+};
 
 export default function AchievementsPage() {
   const { achievements, userAchievements, loading } = useAchievements();
@@ -45,6 +66,40 @@ export default function AchievementsPage() {
       color: a.color,
     };
   }), [achievements, userAchievements]);
+
+  const earnedBadges = useMemo(() => {
+    const earned = userAchievements.filter((ua) => ua.completed);
+    if (earned.length === 0) {
+      return [
+        { name: "Algebra Explorer", icon: Star, color: "bg-indigo-500" },
+        { name: "Streak Starter", icon: Flame, color: "bg-orange-400" },
+      ];
+    }
+    return earned.map((ua) => {
+      const IconComponent = badgeIconMap[ua.name] || Star;
+      const color = badgeColorMap[ua.name] || "bg-primary";
+      return {
+        name: ua.name,
+        icon: IconComponent,
+        color,
+        earned: true,
+      };
+    });
+  }, [userAchievements]);
+
+  const allBadges = useMemo(() => {
+    const badgeNames = [
+      "Geometry Guru", "Fraction Hero", "Stats Whiz", "Calc Crusher",
+      "Streak Star", "Quiz Champion", "Algebra Explorer", "Streak Starter",
+      "Lesson Master", "Practice Pro", "Speed Demon", "Perfectionist",
+    ];
+    return badgeNames.map((name) => ({
+      name,
+      icon: badgeIconMap[name] || Star,
+      color: badgeColorMap[name] || "bg-primary",
+      earned: earnedBadges.some((b) => b.name === name),
+    }));
+  }, [earnedBadges]);
 
   return (
     <div className="space-y-6 animate-in fade-in">
@@ -131,17 +186,20 @@ export default function AchievementsPage() {
 
         <TabsContent value="badges">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {badges.map((b) => (
-              <Card key={b.name} className="overflow-hidden">
-                <div className={cn("h-24 flex items-center justify-center", b.color)}>
-                  <b.icon className="h-12 w-12 text-white" />
-                </div>
-                <CardContent className="pt-4 text-center">
-                  <p className="font-semibold">{b.name}</p>
-                  <Badge variant="secondary" className="mt-2">Equipped</Badge>
-                </CardContent>
-              </Card>
-            ))}
+            {allBadges.map((b) => {
+              const IconComponent = b.icon;
+              return (
+                <Card key={b.name} className={cn("overflow-hidden", !b.earned && "opacity-60")}>
+                  <div className={cn("h-24 flex items-center justify-center", b.color)}>
+                    <IconComponent className="h-12 w-12 text-white" />
+                  </div>
+                  <CardContent className="pt-4 text-center">
+                    <p className="font-semibold">{b.name}</p>
+                    <Badge variant={b.earned ? "default" : "secondary"} className="mt-2">{b.earned ? "Earned" : "Locked"}</Badge>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
       </Tabs>

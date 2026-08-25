@@ -8,13 +8,23 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flame, Zap, Trophy, PenLine, Settings, BookOpen, Star } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useDashboardData, useUserProgress, useAchievements, useTopics } from "@/hooks/use-supabase-data";
 
 export default function ProfilePage() {
+  const { data: session } = useSession();
   const { stats, recentActivity, loading: dashboardLoading } = useDashboardData();
   const { progress, loading: progressLoading } = useUserProgress();
   const { userAchievements } = useAchievements();
   const { topics, loading: topicsLoading } = useTopics();
+
+  const displayName = session?.user?.name || "User";
+  const userGrade = (stats as { grade?: string } | null)?.grade || "—";
+  const memberSince = useMemo(() => {
+    const createdAt = (session?.user as { createdAt?: string } | undefined)?.createdAt;
+    if (!createdAt) return "—";
+    return new Date(createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  }, [session?.user]);
 
   const topicMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -70,8 +80,8 @@ export default function ProfilePage() {
               <AvatarFallback className="text-2xl bg-primary/10 text-primary">A</AvatarFallback>
             </Avatar>
             <div className="flex-1 text-left sm:pb-2 sm:text-center sm:items-end">
-              <h1 className="text-2xl font-bold">Alex Student</h1>
-              <p className="text-muted-foreground">Grade 9 • Joined Aug 2026</p>
+              <h1 className="text-2xl font-bold">{displayName}</h1>
+              <p className="text-muted-foreground">Grade {userGrade} • Joined {memberSince}</p>
               <div className="flex gap-2 mt-2">
                 {earnedBadges.length > 0
                   ? earnedBadges.slice(0, 2).map((b) => (

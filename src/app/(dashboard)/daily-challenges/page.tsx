@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,21 +10,10 @@ import Link from "next/link";
 
 export default function DailyChallengesPage() {
   const { challenge, completion, loading, completing, completeChallenge, refetch } = useDailyChallenge();
-  const [awarding, setAwarding] = useState(false);
 
   const handleComplete = async () => {
     if (!challenge) return;
     await completeChallenge(challenge.id);
-    setAwarding(true);
-    try {
-      await fetch("/api/xp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: challenge.xpBonus, reason: `Completed daily challenge: ${challenge.title}`, sourceType: "daily_challenge" }),
-      });
-    } finally {
-      setAwarding(false);
-    }
   };
 
   if (loading) {
@@ -105,8 +93,8 @@ export default function DailyChallengesPage() {
                 Completed
               </Badge>
             ) : (
-              <Button onClick={handleComplete} disabled={completing || awarding}>
-                {(completing || awarding) && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+              <Button onClick={handleComplete} disabled={completing}>
+                {completing && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
                 Complete Challenge
               </Button>
             )}

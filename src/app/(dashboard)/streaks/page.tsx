@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { StreakDisplay } from "@/components/streak-display";
 import { StreakData, loadStreakData } from "@/lib/streak";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 const streakMilestones = [
@@ -37,24 +38,23 @@ const streakTips = [
   { title: "Review Often", description: "Spaced review strengthens your memory", icon: BookOpen },
 ];
 
-function generateCalendarDays() {
-  const days = [];
+function buildCalendarDays(activeDates: string[]): { date: Date; dateStr: string; day: number; isToday: boolean; active: boolean; xp: number }[] {
+  const days: { date: Date; dateStr: string; day: number; isToday: boolean; active: boolean; xp: number }[] = [];
   const today = new Date();
+  const activeSet = new Set(activeDates);
+
   for (let i = 29; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split("T")[0];
-    const dayOfMonth = d.getDate();
-    const isRecent = i <= 7;
-    const active = isRecent || dayOfMonth % 3 === 0;
-    const xp = active ? ((dayOfMonth * 7 + i * 13) % 80) + 20 : 0;
+    const active = activeSet.has(dateStr);
     days.push({
       date: d,
       dateStr,
       day: d.getDate(),
       isToday: i === 0,
       active,
-      xp,
+      xp: active ? 20 + (i % 5) * 15 : 0,
     });
   }
   return days;
@@ -62,10 +62,20 @@ function generateCalendarDays() {
 
 export default function StreaksPage() {
   const [streakData] = useState<StreakData | null>(() => loadStreakData());
-  const [calendarDays] = useState(() => generateCalendarDays());
-  
+  const activeDates = useMemo(() => streakData?.activeDates || [], [streakData]);
+  const calendarDays = useMemo(() => buildCalendarDays(activeDates), [activeDates]);
 
-  if (!streakData) return null;
+  if (!streakData) {
+    return (
+      <div className="space-y-6 animate-in fade-in">
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            No streak data yet. Complete your first activity to start tracking!
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const monthDays = calendarDays;
 
@@ -82,7 +92,6 @@ export default function StreaksPage() {
         <StreakDisplay compact showFreeze={false} />
       </div>
 
-      {/* Current Streak Banner */}
       <Card className="border border-primary/10 bg-gradient-to-r from-primary/5 to-orange-500/5 overflow-hidden">
         <CardContent className="p-6 text-center relative">
           <div className="relative">
@@ -111,7 +120,6 @@ export default function StreaksPage() {
         </CardContent>
       </Card>
 
-      {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-to-br from-orange-500/10 to-red-500/5">
           <CardContent className="pt-6 pb-6">
@@ -313,7 +321,6 @@ export default function StreaksPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Quick Actions */}
       <Card>
         <CardHeader>
           <CardTitle>Keep Your Streak Going</CardTitle>
@@ -343,8 +350,4 @@ export default function StreaksPage() {
       </Card>
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
 }
