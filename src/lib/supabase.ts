@@ -7,7 +7,7 @@ export const supabase = createClient(
   {
     auth: {
       persistSession: true,
-      storageKey: "mathlearn-supabase-session",
+      storageKey: "mathitout-supabase-session",
     },
   }
 );

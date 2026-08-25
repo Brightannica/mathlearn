@@ -50,7 +50,7 @@ function setCSRFCookie(response: NextResponse): void {
   const expiresAt = Date.now() + 86400 * 1000;
   csrfTokens.set(token, expiresAt);
 
-  const cookie = `mathlearn-csrf-token=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${isProduction ? "; Secure" : ""}`;
+  const cookie = `mathitout-csrf-token=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${isProduction ? "; Secure" : ""}`;
   response.headers.set("Set-Cookie", cookie);
 }
 

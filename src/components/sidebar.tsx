@@ -86,7 +86,7 @@ export function Sidebar() {
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
                 <Zap className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg text-foreground tracking-tight">MathLearn</span>
+              <span className="font-bold text-lg text-foreground tracking-tight">mathitout</span>
             </Link>
             <Button
               variant="ghost"

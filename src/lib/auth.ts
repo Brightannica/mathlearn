@@ -7,7 +7,7 @@ import { env } from "./env";
 
 const DEMO_USER = {
   id: "demo-user-001",
-  email: env.NEXT_PUBLIC_DEMO_EMAIL || "demo@mathlearn.app",
+  email: env.NEXT_PUBLIC_DEMO_EMAIL || "demo@mathitout.app",
   name: "Demo User",
   image: null,
   grade: "9",
@@ -38,7 +38,7 @@ export const authOptions: NextAuthOptions = {
           CredentialsProvider({
             name: "Demo",
             credentials: {
-              email: { label: "Email", type: "email", placeholder: "demo@mathlearn.app" },
+              email: { label: "Email", type: "email", placeholder: "demo@mathitout.app" },
               password: { label: "Password", type: "password", placeholder: "••••••••" },
             },
             async authorize(credentials) {
@@ -46,7 +46,7 @@ export const authOptions: NextAuthOptions = {
                 return null;
               }
 
-              const demoEmail = env.NEXT_PUBLIC_DEMO_EMAIL || "demo@mathlearn.app";
+              const demoEmail = env.NEXT_PUBLIC_DEMO_EMAIL || "demo@mathitout.app";
               const demoPassword = env.NEXT_PUBLIC_DEMO_PASSWORD || "";
 
               if (credentials.email === demoEmail && credentials.password === demoPassword) {

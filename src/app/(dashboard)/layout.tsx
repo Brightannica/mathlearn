@@ -6,7 +6,7 @@ export async function generateMetadata() {
   return {
     title: {
       default: "Dashboard",
-      template: "%s | MathLearn",
+      template: "%s | mathitout",
     },
     description: "Your math learning dashboard.",
   };

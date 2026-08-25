@@ -34,7 +34,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
           <footer className="border-t px-4 py-4 text-xs text-muted-foreground">
             <div className="flex flex-col sm:flex-row justify-between gap-2">
-              <span>© {new Date().getFullYear()} MathLearn</span>
+              <span>© {new Date().getFullYear()} mathitout</span>
               <span>Built for learners, by learners.</span>
             </div>
           </footer>

@@ -16,16 +16,16 @@ import { Settings as SettingsIcon, Bell, Palette, Shield, User, DollarSign, Lock
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => localStorage.getItem("mathlearn-notifications") === "true");
-  const [emailNotifications, setEmailNotifications] = useState(() => localStorage.getItem("mathlearn-email-notifications") === "true");
-  const [pushNotifications, setPushNotifications] = useState(() => localStorage.getItem("mathlearn-push-notifications") === "true");
-  const [studyReminder, setStudyReminder] = useState(() => localStorage.getItem("mathlearn-study-reminder") === "true");
-  const [reminderTime, setReminderTime] = useState(() => localStorage.getItem("mathlearn-reminder-time") || "19:00");
-  const [themePreference, setThemePreference] = useState(() => theme || localStorage.getItem("mathlearn-theme") || "system");
-  const [reduceMotion, setReduceMotion] = useState(() => localStorage.getItem("mathlearn-reduce-motion") === "true");
-  const [publicProfile, setPublicProfile] = useState(() => localStorage.getItem("mathlearn-public-profile") === "true");
-  const [dataPrivacy, setDataPrivacy] = useState(() => localStorage.getItem("mathlearn-data-privacy") === "true");
-  const [newsletter, setNewsletter] = useState(() => localStorage.getItem("mathlearn-newsletter") === "true");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => localStorage.getItem("mathitout-notifications") === "true");
+  const [emailNotifications, setEmailNotifications] = useState(() => localStorage.getItem("mathitout-email-notifications") === "true");
+  const [pushNotifications, setPushNotifications] = useState(() => localStorage.getItem("mathitout-push-notifications") === "true");
+  const [studyReminder, setStudyReminder] = useState(() => localStorage.getItem("mathitout-study-reminder") === "true");
+  const [reminderTime, setReminderTime] = useState(() => localStorage.getItem("mathitout-reminder-time") || "19:00");
+  const [themePreference, setThemePreference] = useState(() => theme || localStorage.getItem("mathitout-theme") || "system");
+  const [reduceMotion, setReduceMotion] = useState(() => localStorage.getItem("mathitout-reduce-motion") === "true");
+  const [publicProfile, setPublicProfile] = useState(() => localStorage.getItem("mathitout-public-profile") === "true");
+  const [dataPrivacy, setDataPrivacy] = useState(() => localStorage.getItem("mathitout-data-privacy") === "true");
+  const [newsletter, setNewsletter] = useState(() => localStorage.getItem("mathitout-newsletter") === "true");
 
   const [name, setName] = useState("");
   const [grade, setGrade] = useState("9");
@@ -75,16 +75,16 @@ export default function SettingsPage() {
         throw new Error("Failed to save profile");
       }
 
-      localStorage.setItem("mathlearn-notifications", String(notificationsEnabled));
-      localStorage.setItem("mathlearn-email-notifications", String(emailNotifications));
-      localStorage.setItem("mathlearn-push-notifications", String(pushNotifications));
-      localStorage.setItem("mathlearn-study-reminder", String(studyReminder));
-      localStorage.setItem("mathlearn-reminder-time", reminderTime);
-      localStorage.setItem("mathlearn-theme", themePreference);
-      localStorage.setItem("mathlearn-reduce-motion", String(reduceMotion));
-      localStorage.setItem("mathlearn-public-profile", String(publicProfile));
-      localStorage.setItem("mathlearn-data-privacy", String(dataPrivacy));
-      localStorage.setItem("mathlearn-newsletter", String(newsletter));
+      localStorage.setItem("mathitout-notifications", String(notificationsEnabled));
+      localStorage.setItem("mathitout-email-notifications", String(emailNotifications));
+      localStorage.setItem("mathitout-push-notifications", String(pushNotifications));
+      localStorage.setItem("mathitout-study-reminder", String(studyReminder));
+      localStorage.setItem("mathitout-reminder-time", reminderTime);
+      localStorage.setItem("mathitout-theme", themePreference);
+      localStorage.setItem("mathitout-reduce-motion", String(reduceMotion));
+      localStorage.setItem("mathitout-public-profile", String(publicProfile));
+      localStorage.setItem("mathitout-data-privacy", String(dataPrivacy));
+      localStorage.setItem("mathitout-newsletter", String(newsletter));
 
       toast({
         title: "Settings saved!",
@@ -117,10 +117,10 @@ export default function SettingsPage() {
         progress,
         favorites,
         settings: {
-          theme: localStorage.getItem("mathlearn-theme") || "system",
-          notifications: localStorage.getItem("mathlearn-notifications") === "true",
-          emailNotifications: localStorage.getItem("mathlearn-email-notifications") === "true",
-          publicProfile: localStorage.getItem("mathlearn-public-profile") === "true",
+          theme: localStorage.getItem("mathitout-theme") || "system",
+          notifications: localStorage.getItem("mathitout-notifications") === "true",
+          emailNotifications: localStorage.getItem("mathitout-email-notifications") === "true",
+          publicProfile: localStorage.getItem("mathitout-public-profile") === "true",
         },
       };
 
@@ -128,7 +128,7 @@ export default function SettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `mathlearn-data-${new Date().toISOString().split("T")[0]}.json`;
+      a.download = `mathitout-data-${new Date().toISOString().split("T")[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -219,7 +219,7 @@ export default function SettingsPage() {
               <p className="font-medium">Theme</p>
               <p className="text-sm text-muted-foreground">Light, dark, or system</p>
             </div>
-            <Select defaultValue={themePreference} onValueChange={(value) => { setThemePreference(value); setTheme(value); localStorage.setItem("mathlearn-theme", value); }}>
+            <Select defaultValue={themePreference} onValueChange={(value) => { setThemePreference(value); setTheme(value); localStorage.setItem("mathitout-theme", value); }}>
               <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="light">Light</SelectItem>

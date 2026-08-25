@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, Terminal, CheckCircle2 } from "lucide-react";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -28,48 +28,59 @@ export default function SignUpPage() {
     if (!email.trim()) {
       errors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "Please enter a valid email address";
+      errors.email = "Enter a valid email address";
     }
     if (!password) {
       errors.password = "Password is required";
     } else if (password.length < 8) {
       errors.password = "Password must be at least 8 characters";
     }
-    if (!confirmPassword) {
-      errors.confirmPassword = "Please confirm your password";
-    } else if (password !== confirmPassword) {
+    if (password !== confirmPassword) {
       errors.confirmPassword = "Passwords do not match";
     }
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
+    return errors;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError(null);
+    setSuccess(false);
 
     const formData = new FormData(e.currentTarget);
-    const fullName = (formData.get("fullName") as string) ?? "";
-    const email = (formData.get("email") as string) ?? "";
-    const password = (formData.get("password") as string) ?? "";
-    const confirmPassword = (formData.get("confirmPassword") as string) ?? "";
+    const fullName = (formData.get("fullName") as string) || "";
+    const email = (formData.get("email") as string) || "";
+    const password = (formData.get("password") as string) || "";
+    const confirmPassword = (formData.get("confirmPassword") as string) || "";
 
-    if (!validate(fullName, email, password, confirmPassword)) return;
+    const errors = validate(fullName, email, password, confirmPassword);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
 
     setIsLoading(true);
     try {
-      await signIn("credentials", {
-        email,
-        password,
-        name: fullName,
-        redirect: false,
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, email, password }),
       });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setFormError(data.error || "Unable to create account. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
       setSuccess(true);
-      setTimeout(() => {
-        router.push("/auth/signin?registered=true");
-      }, 1500);
-    } catch {
-      setFormError("Something went wrong. Please try again.");
+      setTimeout(async () => {
+        await signIn("credentials", { email, password, callbackUrl: "/dashboard", redirect: true });
+      }, 800);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Unable to create account. Please try again.");
       setIsLoading(false);
     }
   };
@@ -77,155 +88,136 @@ export default function SignUpPage() {
   const isRegistered = searchParams.get("registered") === "true";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-3 shadow-lg shadow-primary/20">
-            <Sparkles className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Welcome to MathLearn</h1>
-          <p className="text-muted-foreground mt-1.5 text-sm">Create your account and start learning</p>
+    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 flex flex-col">
+      <div className="border-b border-zinc-800/60 bg-[#0d0d0d]">
+        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center justify-between text-xs text-zinc-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#c4f000] animate-pulse" />
+            all systems operational
+          </span>
+          <span>free forever · k–12</span>
         </div>
+      </div>
 
-        <Card className="border shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-center text-base">Sign Up</CardTitle>
-            <CardDescription className="text-center text-xs">Fill in the details below to get started</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {formError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-2.5 flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-red-700 dark:text-red-300">{formError}</p>
-              </div>
-            )}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-md">
+          <Link href="/" className="flex items-center gap-2.5 mb-10 justify-center">
+            <div className="w-8 h-8 bg-[#c4f000] flex items-center justify-center">
+              <span className="text-black font-bold">m</span>
+            </div>
+            <span className="font-semibold text-lg">mathitout</span>
+          </Link>
 
-            {success && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-2.5 flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-green-700 dark:text-green-300">Account created! Redirecting you to sign in...</p>
-              </div>
-            )}
-
-            {isRegistered && (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-2.5 flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-green-700 dark:text-green-300">Registration successful! Please sign in with your new account.</p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-2.5">
-              <div className="space-y-1">
-                <Label htmlFor="fullName" className="text-xs">Full Name</Label>
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  placeholder="Jane Doe"
-                  autoComplete="name"
-                  disabled={isLoading || success}
-                  className={fieldErrors.fullName ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
-                {fieldErrors.fullName && (
-                  <p className="text-[11px] text-red-600 dark:text-red-400">{fieldErrors.fullName}</p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="email" className="text-xs">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  disabled={isLoading || success}
-                  className={fieldErrors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
-                {fieldErrors.email && (
-                  <p className="text-[11px] text-red-600 dark:text-red-400">{fieldErrors.email}</p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="password" className="text-xs">Password</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="At least 8 characters"
-                  autoComplete="new-password"
-                  disabled={isLoading || success}
-                  className={fieldErrors.password ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
-                {fieldErrors.password && (
-                  <p className="text-[11px] text-red-600 dark:text-red-400">{fieldErrors.password}</p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="confirmPassword" className="text-xs">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Repeat your password"
-                  autoComplete="new-password"
-                  disabled={isLoading || success}
-                  className={fieldErrors.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
-                />
-                {fieldErrors.confirmPassword && (
-                  <p className="text-[11px] text-red-600 dark:text-red-400">{fieldErrors.confirmPassword}</p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-10 text-sm mt-3"
-                disabled={isLoading || success}
-              >
-                {isLoading || success ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    {success ? "Account created!" : "Creating account..."}
-                  </span>
-                ) : (
-                  "Create Account"
-                )}
-              </Button>
-            </form>
-
-            <div className="grid grid-cols-2 gap-2.5 text-center">
-              <div className="rounded-lg border p-2.5">
-                <CheckCircle2 className="h-4 w-4 mx-auto text-green-500 mb-1" />
-                <p className="text-[11px] text-muted-foreground">COPPA Compliant</p>
-              </div>
-              <div className="rounded-lg border p-2.5">
-                <Sparkles className="h-4 w-4 mx-auto text-primary mb-1" />
-                <p className="text-[11px] text-muted-foreground">Interactive Learning</p>
-              </div>
+          <div className="border border-zinc-800 bg-[#0d0d0d]">
+            <div className="px-6 py-5 border-b border-zinc-800">
+              <div className="text-xs text-zinc-600 mb-1">// new account</div>
+              <h1 className="text-2xl font-bold tracking-tight">sign up</h1>
+              <p className="text-sm text-zinc-500 mt-1">free. no card. no email confirmation theater.</p>
             </div>
 
-            <p className="text-[11px] text-center text-muted-foreground">
-              By signing up, you agree to our Terms of Service and Privacy Policy.
-            </p>
+            <div className="p-6 space-y-4">
+              {formError && (
+                <div className="flex items-start gap-2 p-3 border border-red-900/50 bg-red-950/20 text-sm">
+                  <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                  <span className="text-red-300">{formError}</span>
+                </div>
+              )}
 
-            <p className="text-xs text-center text-muted-foreground">
-              Already have an account?{" "}
-              <a href="/auth/signin" className="text-primary underline underline-offset-2 hover:text-primary/80">
-                Sign in
-              </a>
-            </p>
-          </CardContent>
-        </Card>
+              {success && (
+                <div className="flex items-start gap-2 p-3 border border-[#c4f000]/30 bg-[#c4f000]/5 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-[#c4f000] shrink-0 mt-0.5" />
+                  <span className="text-zinc-200">Account created. signing you in...</span>
+                </div>
+              )}
 
-        <div className="mt-5 text-center">
-          <p className="text-xs text-muted-foreground">
-            Start learning math today with structured courses and practice
-          </p>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="fullName" className="text-xs text-zinc-400">name</Label>
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    placeholder="jane doe"
+                    autoComplete="name"
+                    disabled={isLoading || success}
+                    className={`bg-[#0a0a0a] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20 ${fieldErrors.fullName ? "border-red-500" : ""}`}
+                  />
+                  {fieldErrors.fullName && <p className="text-xs text-red-400">{fieldErrors.fullName}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-xs text-zinc-400">email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    disabled={isLoading || success}
+                    className={`bg-[#0a0a0a] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20 ${fieldErrors.email ? "border-red-500" : ""}`}
+                  />
+                  {fieldErrors.email && <p className="text-xs text-red-400">{fieldErrors.email}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-xs text-zinc-400">password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="min 8 chars"
+                    autoComplete="new-password"
+                    disabled={isLoading || success}
+                    className={`bg-[#0a0a0a] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20 ${fieldErrors.password ? "border-red-500" : ""}`}
+                  />
+                  {fieldErrors.password && <p className="text-xs text-red-400">{fieldErrors.password}</p>}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword" className="text-xs text-zinc-400">confirm</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="same as above"
+                    autoComplete="new-password"
+                    disabled={isLoading || success}
+                    className={`bg-[#0a0a0a] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20 ${fieldErrors.confirmPassword ? "border-red-500" : ""}`}
+                  />
+                  {fieldErrors.confirmPassword && <p className="text-xs text-red-400">{fieldErrors.confirmPassword}</p>}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading || success}
+                  className="w-full h-11 bg-[#c4f000] text-black hover:bg-[#b3d800] font-semibold mt-2"
+                >
+                  {isLoading || success ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-3.5 w-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      {success ? "signed in" : "creating..."}
+                    </span>
+                  ) : (
+                    <>create account <ArrowRight className="ml-2 h-4 w-4" /></>
+                  )}
+                </Button>
+              </form>
+
+              <div className="flex items-center gap-2 justify-center text-xs text-zinc-600 pt-2">
+                <Terminal className="h-3 w-3" />
+                <span>COPPA compliant · safe for students</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 text-center text-sm text-zinc-500">
+            already have an account?{" "}
+            <Link href="/auth/signin" className="text-[#c4f000] hover:underline">
+              sign in
+            </Link>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

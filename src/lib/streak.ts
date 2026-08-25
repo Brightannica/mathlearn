@@ -7,7 +7,7 @@ export interface StreakData {
   totalDaysActive: number;
 }
 
-const STORAGE_KEY = "mathlearn-streak";
+const STORAGE_KEY = "mathitout-streak";
 
 export function loadStreakData(): StreakData {
   if (typeof window === "undefined") {
