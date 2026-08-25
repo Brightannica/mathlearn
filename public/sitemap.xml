@@ -31,13 +31,48 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mathlearn.app/daily-challenges</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mathlearn.app/multiplayer</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mathlearn.app/community</loc>
     <lastmod>2025-01-01</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mathlearn.app/leaderboard</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://mathlearn.app/friends</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://mathlearn.app/chat</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://mathlearn.app/progress</loc>
     <lastmod>2025-01-01</lastmod>
     <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://mathlearn.app/achievements</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://mathlearn.app/streaks</loc>
+    <lastmod>2025-01-01</lastmod>
+    <priority>0.5</priority>
   </url>
 </urlset>

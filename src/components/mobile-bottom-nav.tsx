@@ -19,6 +19,10 @@ import {
   Settings,
   Star,
   Bell,
+  Swords,
+  UserPlus,
+  Send,
+  Zap,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Badge } from "@/components/ui/badge";
@@ -28,17 +32,20 @@ const priorityItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Courses", href: "/learn", icon: BookOpen },
   { name: "Practice", href: "/practice", icon: Target },
-  { name: "Tools", href: "/tools", icon: Calculator },
+  { name: "Multiplayer", href: "/multiplayer", icon: Swords },
 ];
 
 const moreItems = [
-  { name: "Daily Challenge", href: "/daily-challenges", icon: Target },
+  { name: "Daily Challenge", href: "/daily-challenges", icon: Zap },
+  { name: "Tools", href: "/tools", icon: Calculator },
   { name: "Visualizations", href: "/visualizations", icon: FlaskConical },
   { name: "Progress", href: "/progress", icon: BarChart3 },
   { name: "Streaks", href: "/streaks", icon: Flame },
   { name: "Achievements", href: "/achievements", icon: Trophy },
   { name: "Community", href: "/community", icon: MessageSquare },
   { name: "Leaderboard", href: "/leaderboard", icon: Users },
+  { name: "Friends", href: "/friends", icon: UserPlus },
+  { name: "Chat", href: "/chat", icon: Send },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Profile", href: "/profile", icon: Star },

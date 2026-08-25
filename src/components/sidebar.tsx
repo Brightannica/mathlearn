@@ -22,6 +22,9 @@ import {
   Flame,
   LogOut,
   Bookmark,
+  Swords,
+  UserPlus,
+  Send,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
@@ -41,7 +44,8 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Courses", href: "/learn", icon: BookOpen },
   { name: "Practice", href: "/practice", icon: Target },
-  { name: "Daily Challenge", href: "/daily-challenges", icon: Target },
+  { name: "Daily Challenge", href: "/daily-challenges", icon: Zap },
+  { name: "Multiplayer", href: "/multiplayer", icon: Swords },
   { name: "Tools", href: "/tools", icon: Calculator },
   { name: "Visualizations", href: "/visualizations", icon: FlaskConical },
   { name: "Progress", href: "/progress", icon: BarChart3 },
@@ -49,6 +53,8 @@ const navigation = [
   { name: "Achievements", href: "/achievements", icon: Trophy },
   { name: "Community", href: "/community", icon: MessageSquare },
   { name: "Leaderboard", href: "/leaderboard", icon: Users },
+  { name: "Friends", href: "/friends", icon: UserPlus },
+  { name: "Chat", href: "/chat", icon: Send },
   { name: "Favorites", href: "/favorites", icon: Bookmark },
 ];
 
