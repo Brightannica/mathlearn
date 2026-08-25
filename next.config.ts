@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' https://spaxaavplkvmriqxkadf.supabase.co",
+              "script-src 'self' 'unsafe-inline' https://spaxaavplkvmriqxkadf.supabase.co",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https://img.youtube https://*.supabase.co blob:",
