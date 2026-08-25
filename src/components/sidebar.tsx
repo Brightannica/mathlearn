@@ -25,6 +25,7 @@ import {
   Swords,
   UserPlus,
   Send,
+  Code2,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
@@ -43,6 +44,7 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Courses", href: "/learn", icon: BookOpen },
+  { name: "Solve", href: "/solve", icon: Code2 },
   { name: "Practice", href: "/practice", icon: Target },
   { name: "Daily Challenge", href: "/daily-challenges", icon: Zap },
   { name: "Multiplayer", href: "/multiplayer", icon: Swords },
