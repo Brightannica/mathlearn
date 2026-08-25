@@ -7,6 +7,7 @@ import { ReactNode, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { KeepAlive } from "@/components/keep-alive";
+import { ColdStartWatchdog } from "@/components/cold-start-watchdog";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -29,6 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <QueryClientProvider client={queryClient}>
           <RealtimeProvider>
             <KeepAlive />
+            <ColdStartWatchdog />
             {children}
           </RealtimeProvider>
           <Toaster />
