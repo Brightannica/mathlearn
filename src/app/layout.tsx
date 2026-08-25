@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
+import "@/lib/keep-alive-server";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({

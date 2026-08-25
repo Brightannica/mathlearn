@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
-const COLD_START_WARNING_MS = 8000;
-const RETRY_DELAYS_MS = [0, 2000, 4000, 6000, 8000, 10000];
+// Show the warming-up UI after this many ms of no hydration signal
+const COLD_START_WARNING_MS = 5000;
+// Retry the page load if the first attempt hangs
+const RETRY_DELAYS_MS = [0, 3000, 5000, 8000, 12000, 18000, 25000];
 
 export function ColdStartWatchdog() {
   const [showWarming, setShowWarming] = useState(false);
@@ -12,9 +14,9 @@ export function ColdStartWatchdog() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // If hydration is happening normally, mark ready quickly.
-    // If the page is still blank after 8s on a cold start, show the warming UI.
-    const readyTimer = setTimeout(() => setReady(true), 1500);
+    // Mark ready after first paint + a small delay
+    const readyTimer = setTimeout(() => setReady(true), 2000);
+    // If still not ready after the threshold, show the warming UI
     const warmingTimer = setTimeout(() => {
       if (!ready) setShowWarming(true);
     }, COLD_START_WARNING_MS);
@@ -28,10 +30,9 @@ export function ColdStartWatchdog() {
   useEffect(() => {
     if (!showWarming) return;
     if (attempt >= RETRY_DELAYS_MS.length) return;
-    const delay = RETRY_DELAYS_MS[attempt] ?? 10000;
+    const delay = RETRY_DELAYS_MS[attempt] ?? 3000;
     const t = setTimeout(() => {
       setAttempt((a) => a + 1);
-      // Force a hard reload to retry the cold start
       window.location.reload();
     }, delay);
     return () => clearTimeout(t);
@@ -50,7 +51,7 @@ export function ColdStartWatchdog() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-zinc-100">spinning up the service</h1>
           <p className="text-sm text-zinc-500 leading-relaxed">
-            free-tier render puts the server to sleep after 15 minutes idle. the first visit wakes it up — usually takes 20–50 seconds.
+            free-tier render puts the server to sleep after 15 minutes idle. the first visit wakes it up — usually 20–50 seconds.
           </p>
         </div>
 
@@ -62,7 +63,11 @@ export function ColdStartWatchdog() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-zinc-400">next retry</span>
-            <span className="text-zinc-500">{attempt >= RETRY_DELAYS_MS.length - 1 ? "manual" : `in ${(RETRY_DELAYS_MS[attempt + 1] ?? 0) / 1000}s`}</span>
+            <span className="text-zinc-500">
+              {attempt >= RETRY_DELAYS_MS.length - 1
+                ? "click below"
+                : `in ${((RETRY_DELAYS_MS[attempt + 1] ?? 0) / 1000).toFixed(0)}s`}
+            </span>
           </div>
           <div className="h-1 bg-zinc-900 overflow-hidden">
             <div
@@ -72,19 +77,17 @@ export function ColdStartWatchdog() {
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-xs">
+        <div className="flex items-center justify-center gap-3 text-xs">
           <button
             onClick={() => window.location.reload()}
-            className="px-3 py-1.5 border border-zinc-800 hover:border-[#c4f000] hover:text-[#c4f000] transition-colors"
+            className="px-4 py-2 border border-zinc-800 hover:border-[#c4f000] hover:text-[#c4f000] transition-colors"
           >
-            retry now
+            ↻ retry now
           </button>
-          <span className="text-zinc-700">·</span>
-          <span className="text-zinc-600">auto-retrying in background</span>
         </div>
 
         <div className="text-[10px] text-zinc-700">
-          tip: bookmark <span className="text-zinc-500">mathitout.app</span> and keep the tab open to avoid cold starts entirely
+          tip: keep this tab open to avoid cold starts entirely
         </div>
       </div>
     </div>
