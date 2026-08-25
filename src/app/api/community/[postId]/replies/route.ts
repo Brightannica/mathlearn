@@ -56,19 +56,19 @@ export async function GET(
 
     if (result.length > 0) {
       const userIds = result.map(r => (replies as Record<string, unknown>[]).find((reply: Record<string, unknown>) => reply.id === r.id)?.user_id as string).filter(Boolean);
-      const { data: profiles } = await supabase
-        .from("profiles")
+      const { data: users } = await supabase
+        .from("users")
         .select("id, name, image")
         .in("id", userIds);
 
-      const profileMap = new Map((profiles ?? []).map(p => [p.id, p]));
+      const userMap = new Map((users ?? []).map(u => [u.id, u]));
       result.forEach((reply, index) => {
         const originalReply = replies![index] as Record<string, unknown>;
         const userId = originalReply.user_id as string;
-        const profile = profileMap.get(userId);
-        if (profile) {
-          reply.authorName = profile.name ?? null;
-          reply.authorImage = profile.image ?? null;
+        const user = userMap.get(userId);
+        if (user) {
+          reply.authorName = user.name ?? null;
+          reply.authorImage = user.image ?? null;
         }
       });
     }

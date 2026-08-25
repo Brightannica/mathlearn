@@ -75,17 +75,17 @@ export async function GET() {
 
     if (posts.length > 0) {
       const userIds = posts.map(p => p.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
+      const { data: users } = await supabase
+        .from("users")
         .select("id, name, image")
         .in("id", userIds);
 
-      const profileMap = new Map((profiles ?? []).map(p => [p.id, p]));
+      const userMap = new Map((users ?? []).map(u => [u.id, u]));
       posts.forEach(post => {
-        const profile = profileMap.get(post.user_id);
-        if (profile) {
-          post.author_name = profile.name ?? "Unknown";
-          post.author_avatar = profile.image ?? null;
+        const user = userMap.get(post.user_id);
+        if (user) {
+          post.author_name = user.name ?? "Unknown";
+          post.author_avatar = user.image ?? null;
         }
       });
     }

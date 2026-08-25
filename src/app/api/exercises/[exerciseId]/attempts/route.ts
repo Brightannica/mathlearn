@@ -60,9 +60,10 @@ export async function POST(
 
     const normalizedAnswer = answer.trim().toLowerCase();
     const correctAnswer = (exercise.correct_answer || "").trim().toLowerCase();
+    const solutionAnswer = (exercise.solution || "").trim().toLowerCase();
     const isCorrect = correctAnswer.length > 0
       ? normalizedAnswer === correctAnswer
-      : normalizedAnswer === exercise.solution.trim().toLowerCase();
+      : normalizedAnswer === solutionAnswer;
 
     const xpEarned = isCorrect ? exercise.xp_reward : 0;
 

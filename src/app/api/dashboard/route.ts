@@ -30,14 +30,14 @@ export async function GET() {
     const achievementsUnlocked = userAchievements.filter((ua) => ua.completed).length;
 
     const recentProgress = [...progress]
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
       .slice(0, 5);
 
     const recentActivity = recentProgress.map((p) => ({
       id: p.id,
       title: p.status === "completed" ? "Lesson Completed" : "Practice Updated",
       description: `Mastery: ${Math.round((p.mastery || 0) * 100)}%`,
-      time: p.updatedAt,
+      time: p.updated_at,
       status: p.status,
     }));
 
