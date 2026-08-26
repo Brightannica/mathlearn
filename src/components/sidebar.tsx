@@ -24,6 +24,7 @@ import {
   X,
   Flame,
   LogOut,
+  Search,
   Bookmark,
   Swords,
   UserPlus,
@@ -47,6 +48,10 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Daily Drill", href: "/daily-drill", icon: Flame },
+  { name: "Problem of the Day", href: "/daily", icon: Flame },
+  { name: "Search", href: "/search", icon: Search },
+  { name: "Onboarding", href: "/onboarding", icon: Flame },
+  { name: "Notifications", href: "/notifications", icon: Flame },
   { name: "Quiz", href: "/quiz", icon: Brain },
   { name: "Courses", href: "/learn", icon: BookOpen },
   { name: "Solve", href: "/solve", icon: Code2 },

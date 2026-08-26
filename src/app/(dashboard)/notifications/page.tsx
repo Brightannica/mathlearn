@@ -1,221 +1,209 @@
 "use client";
 
-import { useState, memo } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Bell,
-  Trophy,
-  Flame,
-  Target,
-  MessageSquare,
-  X,
-  CheckCheck,
-} from "lucide-react";
-import { useNotifications, Notification } from "@/hooks/use-notifications";
+import { Badge } from "@/components/ui/badge";
+import { Bell, Check, CheckCheck, Trash2, X, Trophy, Flame, Zap, Brain, Calendar, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getState, subscribe } from "@/lib/local-state";
+import { getProgressForAllSafe, checkNewAchievements } from "@/lib/achievements";
+import { getCustomContext } from "@/lib/achievements";
 
-const iconMap: Record<string, React.ReactNode> = {
-  achievement: <Trophy className="h-5 w-5 text-yellow-500" />,
-  streak: <Flame className="h-5 w-5 text-orange-500" />,
-  assignment: <Target className="h-5 w-5 text-blue-500" />,
-  message: <MessageSquare className="h-5 w-5 text-green-500" />,
-  system: <Bell className="h-5 w-5 text-gray-500" />,
+const STORAGE_KEY = "mathitout-notifications-v1";
+
+type Notification = {
+  id: string;
+  type: "achievement" | "streak" | "level" | "system";
+  title: string;
+  description: string;
+  href?: string;
+  createdAt: number;
+  read: boolean;
 };
 
-const NotificationItem = memo(function NotificationItem({
-  notification,
-  onMarkRead,
-  onDelete,
-}: {
-  notification: Notification;
-  onMarkRead: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div
-      className={cn(
-        "p-4 rounded-lg hover:bg-muted/50 transition-colors relative group border",
-        !notification.read && "bg-primary/5 border-primary/20"
-      )}
-      onClick={onMarkRead}
-    >
-      <div className="flex gap-3">
-        <div className="mt-0.5 shrink-0">
-          {iconMap[notification.type] || <Bell className="h-5 w-5 text-muted-foreground" />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-semibold">{notification.title}</p>
-            {!notification.read && (
-              <span className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-            {notification.message}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {new Date(notification.createdAt).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </p>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-});
-NotificationItem.displayName = "NotificationItem";
+function loadNotifications(): Notification[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
+}
 
-function NotificationSkeleton() {
-  return (
-    <Card>
-      <CardContent className="py-4">
-        <div className="flex gap-3">
-          <div className="animate-pulse bg-muted rounded h-5 w-5 shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="animate-pulse bg-muted rounded h-4 w-3/4" />
-            <div className="animate-pulse bg-muted rounded h-3 w-full" />
-            <div className="animate-pulse bg-muted rounded h-3 w-1/2" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+function saveNotifications(n: Notification[]) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(n.slice(-50))); } catch {}
 }
 
 export default function NotificationsPage() {
-  const { data: session } = useSession();
-  const {
-    notifications,
-    loading,
-    unreadCount,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-  } = useNotifications();
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [tick, setTick] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const filteredNotifications = notifications.filter((n) => {
-    if (filter === "unread") return !n.read;
-    return true;
-  });
+  useEffect(() => {
+    setNotifications(loadNotifications());
+  }, []);
 
-  if (!session) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">Please sign in to view notifications.</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const unsub = subscribe(() => setTick((t) => t + 1));
+    return () => { unsub(); };
+  }, []);
+
+  useEffect(() => {
+    // Check for new achievements and add them as notifications
+    const newOnes = checkNewAchievements();
+    if (newOnes.length > 0) {
+      const existing = loadNotifications();
+      const newNotifs: Notification[] = newOnes.map((a) => ({
+        id: `ach-${a.id}-${Date.now()}`,
+        type: "achievement",
+        title: `achievement unlocked: ${a.title}`,
+        description: a.description,
+        href: "/achievements",
+        createdAt: Date.now(),
+        read: false,
+      }));
+      const updated = [...existing, ...newNotifs].slice(-50);
+      saveNotifications(updated);
+      setNotifications(updated);
+    }
+  }, [tick]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const markAllRead = () => {
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    saveNotifications(updated);
+    setNotifications(updated);
+  };
+
+  const markRead = (id: string) => {
+    const updated = notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
+    saveNotifications(updated);
+    setNotifications(updated);
+  };
+
+  const remove = (id: string) => {
+    const updated = notifications.filter((n) => n.id !== id);
+    saveNotifications(updated);
+    setNotifications(updated);
+  };
+
+  const typeIcon = (type: Notification["type"]) => {
+    switch (type) {
+      case "achievement": return Trophy;
+      case "streak": return Flame;
+      case "level": return Zap;
+      case "system": return Sparkles;
+    }
+  };
+
+  const typeColor = (type: Notification["type"]) => {
+    switch (type) {
+      case "achievement": return "text-amber-400";
+      case "streak": return "text-orange-400";
+      case "level": return "text-[#c4f000]";
+      case "system": return "text-sky-400";
+    }
+  };
 
   return (
-    <div className="space-y-6 animate-in fade-in max-w-3xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
+          <div className="text-xs text-[#c4f000] uppercase tracking-widest mb-1">// inbox</div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Bell className="h-8 w-8 text-primary" />
-            Notifications
+            <Bell className="h-7 w-7" />
+            notifications
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {unreadCount > 0
-              ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
-              : "All caught up!"}
-          </p>
+          <p className="text-zinc-500 mt-1 text-sm">achievements, milestones, and updates.</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={filter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter("all")}
-          >
-            All
+        {notifications.length > 0 && unreadCount > 0 && (
+          <Button onClick={markAllRead} variant="outline" className="border-zinc-800 hover:border-zinc-700">
+            <CheckCheck className="h-4 w-4 mr-2" /> mark all read
           </Button>
-          <Button
-            variant={filter === "unread" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilter("unread")}
-          >
-            Unread
-          </Button>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="hidden sm:flex"
-            >
-              <CheckCheck className="h-4 w-4 mr-1" />
-              Mark all read
-            </Button>
-          )}
+        )}
+      </div>
+
+      <div className="grid gap-px bg-zinc-800/60 border border-zinc-800/60 grid-cols-3">
+        <div className="bg-[#0d0d0d] p-4 text-center">
+          <div className="text-[10px] uppercase tracking-widest text-zinc-600">total</div>
+          <div className="text-2xl font-bold text-zinc-100 mt-1">{notifications.length}</div>
+        </div>
+        <div className="bg-[#0d0d0d] p-4 text-center">
+          <div className="text-[10px] uppercase tracking-widest text-zinc-600">unread</div>
+          <div className="text-2xl font-bold text-[#c4f000] mt-1">{unreadCount}</div>
+        </div>
+        <div className="bg-[#0d0d0d] p-4 text-center">
+          <div className="text-[10px] uppercase tracking-widest text-zinc-600">achievements</div>
+          <div className="text-2xl font-bold text-amber-400 mt-1">{notifications.filter((n) => n.type === "achievement").length}</div>
         </div>
       </div>
 
-      {unreadCount > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={markAllAsRead}
-          className="sm:hidden w-full"
-        >
-          <CheckCheck className="h-4 w-4 mr-1" />
-          Mark all as read
-        </Button>
+      {notifications.length === 0 ? (
+        <div className="border border-zinc-800/60 bg-[#0d0d0d] p-12 text-center">
+          <Bell className="h-8 w-8 mx-auto text-zinc-700 mb-3" />
+          <p className="text-zinc-400">no notifications yet</p>
+          <p className="text-xs text-zinc-600 mt-1">solve problems, complete daily drills, and unlock achievements to fill this up.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {notifications.slice().reverse().map((n) => {
+            const Icon = typeIcon(n.type);
+            return (
+              <div
+                key={n.id}
+                className={cn(
+                  "border p-4 flex items-start gap-3 group transition-colors",
+                  n.read ? "border-zinc-800/40 bg-[#0d0d0d]" : "border-zinc-700 bg-[#0f0f0f]"
+                )}
+              >
+                <div className={cn("p-2 shrink-0", typeColor(n.type))}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="font-semibold text-sm">{n.title}</p>
+                    {!n.read && <span className="h-1.5 w-1.5 rounded-full bg-[#c4f000]" />}
+                  </div>
+                  <p className="text-xs text-zinc-500">{n.description}</p>
+                  <p className="text-[10px] text-zinc-600 mt-1 font-mono">
+                    {new Date(n.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {n.href && (
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => markRead(n.id)}
+                      className="h-7 text-xs"
+                    >
+                      <Link href={n.href}>view</Link>
+                    </Button>
+                  )}
+                  {!n.read && (
+                    <Button
+                      onClick={() => markRead(n.id)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => remove(n.id)}
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-zinc-500 hover:text-rose-400"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
-
-      <Card>
-        <CardContent className="p-4">
-          <ScrollArea className="h-[calc(100vh-280px)] sm:h-[calc(100vh-240px)]">
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <NotificationSkeleton key={i} />
-                ))}
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="py-12 text-center">
-                <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-lg font-medium">
-                  {filter === "unread" ? "No unread notifications" : "No notifications yet"}
-                </p>
-                <p className="text-muted-foreground text-sm mt-1">
-                  {filter === "unread"
-                    ? "You've read all your notifications."
-                    : "When you get notifications, they'll show up here."}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredNotifications.map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    notification={notification}
-                    onMarkRead={() => markAsRead(notification.id)}
-                    onDelete={() => deleteNotification(notification.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
     </div>
   );
 }
