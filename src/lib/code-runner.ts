@@ -19,7 +19,6 @@ export async function runUserCode(
     // Build a sandboxed function from user code
     // We append a return of the named function so the caller can access it.
     const wrapped = `${userCode}\n;return ${functionName};`;
-    // eslint-disable-next-line no-new-func
     const factory = new Function(wrapped);
     fn = factory();
     if (typeof fn !== "function") {

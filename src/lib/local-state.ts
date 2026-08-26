@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 const KEY = "mathitout-state-v1";
 
 export type SolvedProblem = {
@@ -83,10 +85,9 @@ export function subscribe(listener: () => void): () => void {
 }
 
 export function useLocalState(): LocalState {
-  if (typeof window === "undefined") return defaultState;
-  const [, force] = (require("react") as typeof import("react")).useState(0);
-  (require("react") as typeof import("react")).useEffect(() => {
-    const unsub = subscribe(() => force((n: number) => n + 1));
+  const [, force] = useState(0);
+  useEffect(() => {
+    const unsub = subscribe(() => force((n) => n + 1));
     return () => { unsub(); };
   }, []);
   return getState();

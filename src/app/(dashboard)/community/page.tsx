@@ -740,104 +740,109 @@ export default function CommunityPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
+          <div className="text-xs text-[#c4f000] uppercase tracking-widest mb-1">// discussion</div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <MessageSquare className="h-8 w-8 text-primary" /> Community
+            <MessageSquare className="h-7 w-7" />
+            community
           </h1>
-          <p className="text-muted-foreground mt-1">Ask questions, share tips, help others</p>
+          <p className="text-zinc-500 mt-1 text-sm">ask questions. share what you know. help others.</p>
         </div>
         <div className="flex gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600" />
             <Input
-              placeholder="Search posts..."
-              className="pl-9 pr-8 w-48"
+              placeholder="search posts..."
+              className="pl-9 pr-8 w-48 bg-[#0d0d0d] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-100"
                 aria-label="Clear search"
               >
                 <X className="h-3 w-3" />
               </button>
             )}
           </div>
-          <Button onClick={() => setShowForm((prev) => !prev)}>
-            <Plus className="h-4 w-4 mr-2" /> {showForm ? "Cancel" : "New Post"}
+          <Button
+            onClick={() => setShowForm((prev) => !prev)}
+            className={showForm ? "bg-zinc-800 text-zinc-300 hover:bg-zinc-700" : "bg-[#c4f000] text-black hover:bg-[#b3d800]"}
+          >
+            <Plus className="h-4 w-4 mr-2" /> {showForm ? "cancel" : "new post"}
           </Button>
         </div>
       </div>
 
       {error && (
-        <Card className="border-destructive/50">
-          <CardContent className="py-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
-            <p className="text-sm text-destructive">{error} — showing cached sample posts.</p>
-          </CardContent>
-        </Card>
+        <div className="border border-rose-500/30 bg-rose-500/5 p-3 flex items-center gap-3">
+          <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+          <p className="text-sm text-rose-300">{error} — showing cached sample posts.</p>
+        </div>
       )}
 
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Create a New Post</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium mb-1">Title</label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="What's your question or topic?"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="body" className="block text-sm font-medium mb-1">Body</label>
-                <Textarea
-                  id="body"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="Describe your question in detail..."
-                  rows={4}
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="tags" className="block text-sm font-medium mb-1">Tags</label>
-                <Input
-                  id="tags"
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  placeholder="Algebra, Help (comma-separated)"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">{authorInitial}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-muted-foreground">Posting as <span className="font-medium text-foreground">{authorName}</span></span>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button type="submit">Submit Post</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <div className="border border-zinc-800/60 bg-[#0d0d0d]">
+          <div className="p-4 border-b border-zinc-800/60">
+            <div className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">// new thread</div>
+            <h3 className="font-semibold mt-1">create a new post</h3>
+          </div>
+          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <div>
+              <label htmlFor="title" className="block text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1.5">title</label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="what's your question?"
+                required
+                className="bg-[#0a0a0a] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20"
+              />
+            </div>
+            <div>
+              <label htmlFor="body" className="block text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1.5">body</label>
+              <Textarea
+                id="body"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="describe your question in detail..."
+                rows={4}
+                required
+                className="bg-[#0a0a0a] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20"
+              />
+            </div>
+            <div>
+              <label htmlFor="tags" className="block text-[10px] text-zinc-500 font-mono uppercase tracking-widest mb-1.5">tags</label>
+              <Input
+                id="tags"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="algebra, help (comma-separated)"
+                className="bg-[#0a0a0a] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20"
+              />
+            </div>
+            <div className="flex items-center gap-3 py-2 border-y border-zinc-800/60">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs font-semibold">{authorInitial}</AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-zinc-500">posting as <span className="font-medium text-zinc-100">{authorName}</span></span>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)} className="text-zinc-400 hover:text-zinc-100">cancel</Button>
+              <Button type="submit" className="bg-[#c4f000] text-black hover:bg-[#b3d800]">submit</Button>
+            </div>
+          </form>
+        </div>
       )}
 
       <Tabs value={activeTab} onValueChange={(newTab) => { setActiveTab(newTab); if (newTab === "top") loadTopPosts(); if (newTab === "unanswered") loadUnansweredPosts(); }} className="w-full">
-        <TabsList>
-          <TabsTrigger value="recent">Recent</TabsTrigger>
-          <TabsTrigger value="top">Top</TabsTrigger>
-          <TabsTrigger value="unanswered">Unanswered</TabsTrigger>
+        <TabsList className="bg-zinc-900/40 border border-zinc-800/60 p-1">
+          <TabsTrigger value="recent" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">recent</TabsTrigger>
+          <TabsTrigger value="top" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">top</TabsTrigger>
+          <TabsTrigger value="unanswered" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">unanswered</TabsTrigger>
         </TabsList>
 
         <TabsContent value="recent" className="space-y-3">

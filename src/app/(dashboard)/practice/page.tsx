@@ -1,26 +1,15 @@
 "use client";
 
-import { useState, memo, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo, useEffect, useCallback, memo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
-  Target,
-  BookOpen,
-  Star,
-  Trophy,
-  ChevronRight,
-  Filter,
-  RotateCcw,
-  Clock,
-  Flame,
-  Zap,
-  History,
-  CheckCircle2,
-  XCircle,
-  Bookmark,
+  Target, BookOpen, ChevronRight, Filter, RotateCcw, Clock, Zap,
+  History, CheckCircle2, XCircle, Bookmark, Search, ArrowRight, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import QuizCard, { ExerciseAttempt } from "@/components/quiz-card";
@@ -29,24 +18,8 @@ import { useTopics, useUserProgress, useExercises, fetchJSON, ExerciseSummary } 
 import type { Favorite } from "@/hooks/use-favorites";
 import { useAwardXP } from "@/hooks/use-award-xp";
 import { useFavorites } from "@/hooks/use-favorites";
-
-const topicBadgeColor: Record<string, string> = {
-  blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  green: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  cyan: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
-  pink: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
-};
-
-const topicGradient: Record<string, string> = {
-  blue: "from-blue-500 to-cyan-500",
-  purple: "from-purple-500 to-indigo-500",
-  green: "from-green-500 to-emerald-500",
-  orange: "from-orange-500 to-amber-500",
-  cyan: "from-cyan-500 to-teal-500",
-  pink: "from-pink-500 to-rose-500",
-};
+import { getProblems, getProblemsByDifficulty, getProblemsByTopic } from "@/lib/problems";
+import { isSolved } from "@/lib/local-state";
 
 function getTopicDifficulty(grade?: string): "easy" | "medium" | "hard" {
   if (!grade) return "medium";
@@ -57,13 +30,19 @@ function getTopicDifficulty(grade?: string): "easy" | "medium" | "hard" {
   return "hard";
 }
 
+const difficultyColor: Record<string, string> = {
+  easy: "text-emerald-400 border-emerald-400/30 bg-emerald-400/10",
+  medium: "text-amber-400 border-amber-400/30 bg-amber-400/10",
+  hard: "text-rose-400 border-rose-400/30 bg-rose-400/10",
+};
+
 const FALLBACK_TOPICS = [
-  { id: "linear-eq", name: "Linear Equations", questions: 24, mastered: 18, color: "blue", icon: "📐", difficulty: "medium" as const },
-  { id: "quadratic", name: "Quadratic Functions", questions: 18, mastered: 8, color: "purple", icon: "📊", difficulty: "medium" as const },
-  { id: "geometry", name: "Geometry Basics", questions: 30, mastered: 25, color: "green", icon: "📏", difficulty: "medium" as const },
-  { id: "fractions", name: "Fractions & Decimals", questions: 20, mastered: 12, color: "orange", icon: "🍕", difficulty: "medium" as const },
-  { id: "statistics", name: "Statistics", questions: 15, mastered: 3, color: "cyan", icon: "📈", difficulty: "medium" as const },
-  { id: "exponents", name: "Exponents & Radicals", questions: 16, mastered: 10, color: "pink", icon: "🧮", difficulty: "medium" as const },
+  { id: "linear-eq", name: "Linear Equations", questions: 24, mastered: 18, icon: "ƒ", difficulty: "medium" as const },
+  { id: "quadratic", name: "Quadratic Functions", questions: 18, mastered: 8, icon: "x²", difficulty: "medium" as const },
+  { id: "geometry", name: "Geometry Basics", questions: 30, mastered: 25, icon: "△", difficulty: "medium" as const },
+  { id: "fractions", name: "Fractions & Decimals", questions: 20, mastered: 12, icon: "½", difficulty: "medium" as const },
+  { id: "statistics", name: "Statistics", questions: 15, mastered: 3, icon: "σ", difficulty: "hard" as const },
+  { id: "exponents", name: "Exponents & Radicals", questions: 16, mastered: 10, icon: "√", difficulty: "medium" as const },
 ];
 
 const MemoizedQuizCard = memo(function MemoizedQuizCard(props: React.ComponentProps<typeof QuizCard>) {
@@ -71,95 +50,80 @@ const MemoizedQuizCard = memo(function MemoizedQuizCard(props: React.ComponentPr
 });
 MemoizedQuizCard.displayName = "MemoizedQuizCard";
 
-interface PracticeTopicCardProps {
-  topic: {
-    id: string;
-    name: string;
-    questions: number;
-    mastered: number;
-    color: string;
-    icon: string;
-    difficulty: string;
-  };
+function PracticeTopicCard({ topic, onSelect, onBookmark }: {
+  topic: { id: string; name: string; questions: number; mastered: number; icon: string; difficulty: string };
   onSelect: (id: string) => void;
   onBookmark: (itemId: string, itemType: Favorite["item_type"], title: string) => Promise<void>;
-}
-
-const PracticeTopicCard = memo(function PracticeTopicCard({ topic, onSelect, onBookmark }: PracticeTopicCardProps) {
+}) {
   const progress = Math.round((topic.mastered / topic.questions) * 100);
+  const status = topic.mastered >= topic.questions * 0.8 ? "Mastered" : topic.mastered > 0 ? "In Progress" : "New";
+  const statusColor = status === "Mastered" ? "text-emerald-400" : status === "In Progress" ? "text-amber-400" : "text-zinc-500";
 
   return (
-    <Card
-      className="group hover:shadow-lg transition-all hover:border-primary/50 cursor-pointer"
-      onClick={() => {
-        onSelect(topic.id);
-      }}
-      >
-      <CardContent className="p-5 space-y-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl text-2xl bg-gradient-to-br text-white shadow-md",
-              topicGradient[topic.color]
-            )}>
-              {topic.icon}
-            </div>
-            <div>
-              <h3 className="font-semibold group-hover:text-primary transition-colors">{topic.name}</h3>
-              <p className="text-xs text-muted-foreground">{topic.questions} questions</p>
-            </div>
+    <button
+      onClick={() => onSelect(topic.id)}
+      className="text-left border border-zinc-800/60 bg-[#0d0d0d] p-5 hover:border-zinc-600 transition-all group relative"
+    >
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 border border-zinc-700 flex items-center justify-center font-bold text-lg text-zinc-300 group-hover:border-[#c4f000] group-hover:text-[#c4f000] transition-colors">
+            {topic.icon}
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-yellow-500"
-              onClick={(e) => {
-                e.stopPropagation();
-                onBookmark(topic.id, "topic", topic.name);
-              }}
-            >
-              <Bookmark className="h-4 w-4" />
-            </Button>
-            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+          <div>
+            <h3 className="font-semibold text-zinc-100 group-hover:text-[#c4f000] transition-colors">{topic.name}</h3>
+            <p className="text-xs text-zinc-500">{topic.questions} problems</p>
           </div>
         </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onBookmark(topic.id, "topic", topic.name);
+          }}
+          className="p-1.5 text-zinc-600 hover:text-[#c4f000] transition-colors"
+          aria-label="Bookmark"
+        >
+          <Bookmark className="h-4 w-4" />
+        </button>
+      </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Mastery</span>
-            <span className="font-medium">{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-zinc-600">mastery</span>
+          <span className="font-mono text-zinc-300">{progress}%</span>
         </div>
+        <div className="h-1.5 bg-zinc-900">
+          <div
+            className="h-full bg-[#c4f000] transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Star className="h-3 w-3 text-yellow-500" />
-            {topic.mastered}/{topic.questions}
-          </div>
-          <Badge className={cn(topicBadgeColor[topic.color], "capitalize")}>
-            {topic.mastered >= topic.questions * 0.8 ? "Mastered" : topic.mastered > 0 ? "In Progress" : "New"}
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex items-center justify-between">
+        <span className={cn("text-[10px] uppercase tracking-widest font-mono", statusColor)}>// {status.toLowerCase()}</span>
+        <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-mono">{topic.difficulty}</span>
+      </div>
+
+      <div className="mt-4 flex items-center gap-1.5 text-xs text-zinc-500 group-hover:text-[#c4f000] transition-colors">
+        <span>start practice</span>
+        <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+      </div>
+    </button>
   );
-});
-PracticeTopicCard.displayName = "PracticeTopicCard";
+}
 
-const formatTime = (isoString: string) => {
+function formatTime(isoString: string) {
   const date = new Date(isoString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "Just now";
+  if (diffMins < 1) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
-};
+}
 
 export default function PracticePage() {
   const { topics } = useTopics();
@@ -167,16 +131,14 @@ export default function PracticePage() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("topics");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { exercises: topicExercises } = useExercises(selectedTopic || "");
   const { awardXP } = useAwardXP();
   const { toggleFavorite } = useFavorites();
 
   const [recentAttempts, setRecentAttempts] = useState<ExerciseAttempt[]>([]);
-  const [historyAttempts, setHistoryAttempts] = useState<ExerciseAttempt[][]>(() => {
-    if (activeTab !== "history" || topics.length === 0) return [];
-    return [];
-  });
+  const [historyAttempts, setHistoryAttempts] = useState<ExerciseAttempt[][]>([]);
   const [historyStats, setHistoryStats] = useState<{ total: number; correct: number; xp: number } | null>(null);
   const [historyTopicFilter, setHistoryTopicFilter] = useState<string>("all");
   const [attemptsLoading, setAttemptsLoading] = useState(false);
@@ -184,18 +146,16 @@ export default function PracticePage() {
 
   useEffect(() => {
     if (!selectedTopic || topicExercises.length === 0) {
-      requestAnimationFrame(() => setRecentAttempts([]));
+      setRecentAttempts([]);
       return;
     }
     let cancelled = false;
-    requestAnimationFrame(() => setAttemptsLoading(true));
+    setAttemptsLoading(true);
 
     async function loadAttempts() {
       try {
         const results = await Promise.all(
-          topicExercises.map(ex =>
-            fetchJSON<ExerciseAttempt[]>(`/api/exercises/${ex.id}/attempts`).catch(() => [])
-          )
+          topicExercises.map((ex) => fetchJSON<ExerciseAttempt[]>(`/api/exercises/${ex.id}/attempts`).catch(() => []))
         );
         if (!cancelled) {
           const all = results.flat();
@@ -208,7 +168,6 @@ export default function PracticePage() {
         if (!cancelled) setAttemptsLoading(false);
       }
     }
-
     loadAttempts();
     return () => { cancelled = true; };
   }, [selectedTopic, topicExercises]);
@@ -216,7 +175,7 @@ export default function PracticePage() {
   useEffect(() => {
     if (activeTab !== "history" || topics.length === 0) return;
     let cancelled = false;
-    requestAnimationFrame(() => setHistoryLoading(true));
+    setHistoryLoading(true);
 
     async function loadAllAttempts() {
       try {
@@ -229,18 +188,14 @@ export default function PracticePage() {
           }
           return;
         }
-
         const topicGroups = new Map<string, ExerciseAttempt[]>();
         const results = await Promise.all(
-          allExercises.map(ex =>
-            fetchJSON<ExerciseAttempt[]>(`/api/exercises/${ex.id}/attempts`).catch(() => [])
-          )
+          allExercises.map((ex) => fetchJSON<ExerciseAttempt[]>(`/api/exercises/${ex.id}/attempts`).catch(() => []))
         );
-
         if (!cancelled) {
           results.forEach((attempts, i) => {
             const ex = allExercises[i];
-            attempts.forEach(a => {
+            attempts.forEach((a) => {
               a.exerciseTitle = ex.title;
               a.topicId = ex.topicId;
             });
@@ -248,13 +203,11 @@ export default function PracticePage() {
             group.push(...attempts);
             topicGroups.set(ex.topicId, group);
           });
-
           const allFlat = Array.from(topicGroups.values()).flat();
           allFlat.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           setHistoryAttempts(Array.from(topicGroups.values()));
-
           const total = allFlat.length;
-          const correct = allFlat.filter(a => a.isCorrect).length;
+          const correct = allFlat.filter((a) => a.isCorrect).length;
           const xp = allFlat.reduce((sum, a) => sum + a.xpEarned, 0);
           setHistoryStats({ total, correct, xp });
         }
@@ -267,7 +220,6 @@ export default function PracticePage() {
         if (!cancelled) setHistoryLoading(false);
       }
     }
-
     loadAllAttempts();
     return () => { cancelled = true; };
   }, [activeTab, topics]);
@@ -277,15 +229,9 @@ export default function PracticePage() {
       await fetchJSON(`/api/exercises/${answer.exerciseId}/attempts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          answer: String(answer.selected),
-          timeSpent: 0,
-          hintsUsed: 0,
-        }),
+        body: JSON.stringify({ answer: String(answer.selected), timeSpent: 0, hintsUsed: 0 }),
       });
-    } catch {
-      // silent fail — attempt logging is non-blocking
-    }
+    } catch {}
   };
 
   const practiceTopics = topics.length > 0
@@ -293,22 +239,12 @@ export default function PracticePage() {
         const topicProgress = progress.filter((p) => p.topicId === t.id);
         const mastered = topicProgress.reduce((sum, p) => sum + Math.round((p.mastery || 0) * 100), 0);
         const questions = topicProgress.length > 0 ? topicProgress.length * 5 : 20;
-        const colorKey = t.color || "#2563eb";
-        const colorMap: Record<string, string> = {
-          "#2563eb": "blue",
-          "#7c3aed": "purple",
-          "#059669": "green",
-          "#d97706": "orange",
-          "#0891b2": "cyan",
-          "#db2777": "pink",
-        };
         return {
           id: t.slug || t.id,
           name: t.name,
           questions: Math.max(questions, 10),
           mastered: Math.min(mastered, questions),
-          color: colorMap[colorKey] || "blue",
-          icon: t.icon || "📝",
+          icon: t.icon || "ƒ",
           difficulty: getTopicDifficulty(t.grade),
         };
       })
@@ -320,181 +256,208 @@ export default function PracticePage() {
     awardXP(xpEarned, `Completed quiz: ${topicName}`, undefined, "quiz");
   }, [selectedTopic, practiceTopics, awardXP]);
 
-  const filteredPracticeTopics = difficultyFilter === "all"
-    ? practiceTopics
-    : practiceTopics.filter(t => t.difficulty === difficultyFilter);
+  const filteredPracticeTopics = useMemo(() => {
+    let topics = difficultyFilter === "all" ? practiceTopics : practiceTopics.filter((t) => t.difficulty === difficultyFilter);
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      topics = topics.filter((t) => t.name.toLowerCase().includes(term));
+    }
+    return topics;
+  }, [practiceTopics, difficultyFilter, searchTerm]);
 
   const totalMastered = practiceTopics.reduce((sum, t) => sum + t.mastered, 0);
   const totalQuestions = practiceTopics.reduce((sum, t) => sum + t.questions, 0);
-  const overallProgress = Math.round((totalMastered / totalQuestions) * 100);
+  const overallProgress = totalQuestions > 0 ? Math.round((totalMastered / totalQuestions) * 100) : 0;
+  const masteredTopics = practiceTopics.filter((t) => t.mastered >= t.questions * 0.8).length;
 
   const filteredHistoryAttempts = historyTopicFilter === "all"
     ? historyAttempts.flat()
-    : (historyAttempts.find(g => g[0]?.topicId === historyTopicFilter) || []);
+    : (historyAttempts.find((g) => g[0]?.topicId === historyTopicFilter) || []);
 
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex-1 lg:flex-none">
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Target className="h-6 w-6 text-primary" />
-            Practice
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <div className="text-xs text-[#c4f000] uppercase tracking-widest mb-1">// drill mode</div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Target className="h-7 w-7" />
+            practice
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Master concepts through interactive quizzes and repetition</p>
+          <p className="text-zinc-500 mt-1 text-sm">pick a topic. get problems. build mastery.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/learn">Browse Courses</Link>
-          </Button>
+        <Button asChild variant="outline" className="border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900">
+          <Link href="/learn">all courses <ChevronRight className="ml-1 h-4 w-4" /></Link>
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-px bg-zinc-800/60 border border-zinc-800/60 grid-cols-2 sm:grid-cols-4">
+        <div className="bg-[#0d0d0d] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-600">topics</div>
+              <div className="text-2xl font-bold text-zinc-100 mt-1">{practiceTopics.length}</div>
+            </div>
+            <BookOpen className="h-5 w-5 text-zinc-700" />
+          </div>
+        </div>
+        <div className="bg-[#0d0d0d] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-600">mastered</div>
+              <div className="text-2xl font-bold text-[#c4f000] mt-1">{masteredTopics}</div>
+            </div>
+            <CheckCircle2 className="h-5 w-5 text-zinc-700" />
+          </div>
+        </div>
+        <div className="bg-[#0d0d0d] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-600">solved</div>
+              <div className="text-2xl font-bold text-zinc-100 mt-1">{totalMastered}</div>
+            </div>
+            <Target className="h-5 w-5 text-zinc-700" />
+          </div>
+        </div>
+        <div className="bg-[#0d0d0d] p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-600">progress</div>
+              <div className="text-2xl font-bold text-zinc-100 mt-1">{overallProgress}%</div>
+            </div>
+            <Zap className="h-5 w-5 text-zinc-700" />
+          </div>
         </div>
       </div>
 
-      {/* Progress Banner */}
-      <Card className="border border-primary/10 bg-gradient-to-r from-primary/5 to-emerald-500/5">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Overall Progress</p>
-              <p className="text-2xl font-bold">{overallProgress}% Mastered</p>
-              <p className="text-sm text-muted-foreground">{totalMastered}/{totalQuestions} questions mastered</p>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-primary">{totalMastered}</p>
-              <p className="text-xs text-muted-foreground">Questions Solved</p>
-            </div>
-          </div>
-          <Progress value={overallProgress} className="h-3" />
-        </CardContent>
-      </Card>
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="topics">Topics</TabsTrigger>
-          <TabsTrigger value="quiz">Quick Quiz</TabsTrigger>
-          <TabsTrigger value="review">Review</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+        <TabsList className="bg-zinc-900/40 border border-zinc-800/60 p-1">
+          <TabsTrigger value="topics" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">topics</TabsTrigger>
+          <TabsTrigger value="quiz" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">quiz</TabsTrigger>
+          <TabsTrigger value="review" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">review</TabsTrigger>
+          <TabsTrigger value="history" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">history</TabsTrigger>
+          <TabsTrigger value="solver" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100">solver</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="topics" className="space-y-4">
-          {/* Stats Row */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="border-0 bg-gradient-to-br from-blue-500 to-cyan-600 text-white">
-              <CardContent className="p-4 flex items-center gap-3">
-                <BookOpen className="h-8 w-8 opacity-90" />
-                <div>
-                  <p className="text-2xl font-bold">{practiceTopics.length}</p>
-                  <p className="text-xs opacity-90">Topics Available</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-0 bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Target className="h-8 w-8 opacity-90" />
-                <div>
-                  <p className="text-2xl font-bold">{totalMastered}</p>
-                  <p className="text-xs opacity-90">Questions Mastered</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border-0 bg-gradient-to-br from-purple-600 to-indigo-700 text-white">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Trophy className="h-8 w-8 opacity-90" />
-                <div>
-                  <p className="text-2xl font-bold">
-                    {practiceTopics.filter(t => t.mastered >= t.questions * 0.8).length}
-                  </p>
-                  <p className="text-xs opacity-90">Topics Near Mastery</p>
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="topics" className="space-y-4 mt-4">
+          {/* Search and filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600" />
+              <Input
+                placeholder="search topics..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 bg-[#0d0d0d] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20"
+              />
+            </div>
+            <div className="flex gap-1.5">
+              {["all", "easy", "medium", "hard"].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDifficultyFilter(d)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors",
+                    difficultyFilter === d
+                      ? "border-[#c4f000] text-[#c4f000] bg-[#c4f000]/5"
+                      : "border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
+                  )}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Difficulty Filter */}
-          <div className="flex items-center gap-3">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filter:</span>
-            {["all", "easy", "medium", "hard"].map((d) => (
-              <Button
-                key={d}
-                variant={difficultyFilter === d ? "default" : "outline"}
-                size="sm"
-                onClick={() => setDifficultyFilter(d)}
-                className="capitalize"
-              >
-                {d}
-              </Button>
-            ))}
-          </div>
-
-          {/* Topics Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPracticeTopics.map((topic) => (
-              <PracticeTopicCard key={topic.id} topic={topic} onSelect={(id) => { setSelectedTopic(id); setActiveTab("quiz"); }} onBookmark={toggleFavorite} />
-            ))}
-          </div>
+          {/* Topics grid */}
+          {filteredPracticeTopics.length === 0 ? (
+            <div className="border border-zinc-800/60 bg-[#0d0d0d] p-12 text-center">
+              <Filter className="h-8 w-8 mx-auto text-zinc-700 mb-3" />
+              <p className="text-zinc-500">no topics match those filters</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {filteredPracticeTopics.map((topic) => (
+                <PracticeTopicCard key={topic.id} topic={topic} onSelect={(id) => { setSelectedTopic(id); setActiveTab("quiz"); }} onBookmark={toggleFavorite} />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="quiz" className="space-y-4">
+        <TabsContent value="quiz" className="space-y-4 mt-4">
           {selectedTopic ? (
             <div className="space-y-4">
+              <div className="border border-zinc-800/60 bg-[#0d0d0d] p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setActiveTab("topics")}
+                    className="text-zinc-500 hover:text-zinc-100 text-xs uppercase tracking-widest"
+                  >
+                    ← topics
+                  </button>
+                  <span className="text-zinc-700">/</span>
+                  <span className="font-semibold text-zinc-100">
+                    {practiceTopics.find((t) => t.id === selectedTopic)?.name}
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">5 questions · 10 min</span>
+              </div>
+
               <MemoizedQuizCard
                 topicId={selectedTopic}
-                topicName={practiceTopics.find(t => t.id === selectedTopic)?.name}
+                topicName={practiceTopics.find((t) => t.id === selectedTopic)?.name}
                 numQuestions={5}
                 onComplete={handleQuizComplete}
                 onAnswer={handleAnswer}
               />
 
-              {/* Recent Attempts */}
               {selectedTopic && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <History className="h-5 w-5 text-primary" />
-                      Recent Attempts
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                <Card className="border-zinc-800/60 bg-[#0d0d0d]">
+                  <CardContent className="pt-5">
+                    <div className="flex items-center gap-2 mb-4">
+                      <History className="h-4 w-4 text-zinc-500" />
+                      <h3 className="font-semibold text-sm">recent attempts</h3>
+                    </div>
                     {attemptsLoading ? (
                       <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                        <span className="ml-2 text-sm text-muted-foreground">Loading attempts...</span>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#c4f000]" />
+                        <span className="ml-2 text-sm text-zinc-500">loading...</span>
                       </div>
                     ) : recentAttempts.length === 0 ? (
                       <div className="text-center py-8">
-                        <RotateCcw className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-                        <p className="text-sm text-muted-foreground">No attempts yet. Start a quiz to see your results here!</p>
+                        <RotateCcw className="h-8 w-8 mx-auto text-zinc-700 mb-2" />
+                        <p className="text-sm text-zinc-500">no attempts yet. start the quiz above.</p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {recentAttempts.map((attempt) => (
                           <div
                             key={attempt.id}
-                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                            className="flex items-center justify-between p-3 border border-zinc-800/40 hover:border-zinc-700 transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               {attempt.isCorrect ? (
-                                <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                               ) : (
-                                <XCircle className="h-5 w-5 text-red-500 shrink-0" />
+                                <XCircle className="h-4 w-4 text-rose-400 shrink-0" />
                               )}
                               <div>
                                 <p className="font-medium text-sm">{attempt.exerciseTitle}</p>
-                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <p className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
                                   <Clock className="h-3 w-3" />
                                   {formatTime(attempt.createdAt)}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant={attempt.isCorrect ? "default" : "destructive"} className="text-xs">
-                                {attempt.isCorrect ? "Correct" : "Incorrect"}
+                              <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wider", attempt.isCorrect ? "text-emerald-400 border-emerald-400/30" : "text-rose-400 border-rose-400/30")}>
+                                {attempt.isCorrect ? "correct" : "incorrect"}
                               </Badge>
                               {attempt.xpEarned > 0 && (
-                                <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                  <Zap className="h-3 w-3 text-yellow-500" />
-                                  +{attempt.xpEarned} XP
+                                <Badge variant="outline" className="text-[10px] text-zinc-300 border-zinc-700">
+                                  <Zap className="h-3 w-3 mr-1" />
+                                  +{attempt.xpEarned}
                                 </Badge>
                               )}
                             </div>
@@ -507,201 +470,254 @@ export default function PracticePage() {
               )}
             </div>
           ) : (
-            <Card>
-              <CardContent className="p-8 text-center space-y-4">
-                <Target className="h-12 w-12 mx-auto text-muted-foreground/50" />
-                <h3 className="text-lg font-semibold">Select a Topic</h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Choose a topic from the Topics tab to start a quiz, or try a quick mixed quiz below.
+            <div className="border border-zinc-800/60 bg-[#0d0d0d] p-12 text-center space-y-4">
+              <Target className="h-12 w-12 mx-auto text-zinc-700" />
+              <div>
+                <h3 className="text-lg font-semibold">select a topic</h3>
+                <p className="text-sm text-zinc-500 max-w-md mx-auto mt-1">
+                  choose a topic from the topics tab, or jump straight into a quick mixed quiz.
                 </p>
-                <div className="flex gap-3 justify-center">
-                  <Button onClick={() => setSelectedTopic("linear-eq")}>
-                    Linear Equations Quiz
-                  </Button>
-                  <Button variant="outline" onClick={() => setSelectedTopic("quadratic")}>
-                    Quadratic Quiz
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex gap-3 justify-center flex-wrap">
+                <Button onClick={() => setSelectedTopic("linear-eq")} className="bg-[#c4f000] text-black hover:bg-[#b3d800]">
+                  linear equations
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedTopic("quadratic")} className="border-zinc-700">
+                  quadratics
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedTopic("fractions")} className="border-zinc-700">
+                  fractions
+                </Button>
+              </div>
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="review" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <RotateCcw className="h-5 w-5 text-primary" />
-                Spaced Review
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Review topics you&apos;ve started to reinforce learning and move knowledge into long-term memory.
-              </p>
-              <div className="space-y-3">
-                {practiceTopics.filter(t => t.mastered > 0 && t.mastered < t.questions).map((topic) => {
-                  const progress = Math.round((topic.mastered / topic.questions) * 100);
-                  return (
-                    <div key={topic.id} className="flex items-center justify-between p-4 rounded-lg bg-muted hover:bg-muted/80 transition-colors cursor-pointer" onClick={() => { setSelectedTopic(topic.id); setActiveTab("quiz"); }}>
-                      <div className="flex items-center gap-3">
-                        <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", topicBadgeColor[topic.color])}>
-                          {topic.icon}
-                        </div>
-                        <div>
-                          <p className="font-medium">{topic.name}</p>
-                          <p className="text-xs text-muted-foreground">{progress}% mastered</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Progress value={progress} className="w-20 h-2" />
-                        <Button size="sm" variant="outline">Review</Button>
-                      </div>
-                    </div>
-                  );
-                })}
+        <TabsContent value="review" className="space-y-3 mt-4">
+          <div className="border border-zinc-800/60 bg-[#0d0d0d] p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 border border-[#c4f000]/30 bg-[#c4f000]/5">
+                <RotateCcw className="h-4 w-4 text-[#c4f000]" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <h3 className="font-semibold">spaced review</h3>
+                <p className="text-xs text-zinc-500 mt-1">
+                  topics you&apos;ve started but haven&apos;t mastered. review them to lock the knowledge in.
+                </p>
+              </div>
+            </div>
+
+            {practiceTopics.filter((t) => t.mastered > 0 && t.mastered < t.questions).length === 0 ? (
+              <div className="text-center py-8 text-zinc-500 text-sm">
+                <Sparkles className="h-8 w-8 mx-auto text-zinc-700 mb-2" />
+                nothing to review yet. start a topic to build your review queue.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {practiceTopics
+                  .filter((t) => t.mastered > 0 && t.mastered < t.questions)
+                  .map((topic) => {
+                    const p = Math.round((topic.mastered / topic.questions) * 100);
+                    return (
+                      <button
+                        key={topic.id}
+                        onClick={() => { setSelectedTopic(topic.id); setActiveTab("quiz"); }}
+                        className="w-full flex items-center justify-between p-3 border border-zinc-800/40 hover:border-zinc-700 transition-colors group text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 border border-zinc-700 flex items-center justify-center text-zinc-400 group-hover:border-[#c4f000] group-hover:text-[#c4f000] transition-colors">
+                            {topic.icon}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{topic.name}</p>
+                            <p className="text-xs text-zinc-500">{topic.mastered}/{topic.questions} mastered · {p}%</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="hidden sm:block w-24 h-1.5 bg-zinc-900">
+                            <div className="h-full bg-[#c4f000]" style={{ width: `${p}%` }} />
+                          </div>
+                          <span className="text-[10px] uppercase tracking-widest text-zinc-500 group-hover:text-[#c4f000] transition-colors flex items-center gap-1">
+                            review <ArrowRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-4">
+        <TabsContent value="history" className="space-y-4 mt-4">
           {historyLoading ? (
-            <Card>
-              <CardContent className="p-8 flex items-center justify-center gap-3">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
-                <span className="text-sm text-muted-foreground">Loading exercise history...</span>
-              </CardContent>
-            </Card>
+            <div className="border border-zinc-800/60 bg-[#0d0d0d] p-12 text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#c4f000] mx-auto" />
+              <p className="text-sm text-zinc-500 mt-3">loading history...</p>
+            </div>
           ) : historyStats && historyAttempts.length > 0 ? (
             <div className="space-y-4">
-              {/* Stats Cards */}
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Card className="border-0 bg-gradient-to-br from-blue-500 to-cyan-600 text-white">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <Target className="h-8 w-8 opacity-90" />
-                    <div>
-                      <p className="text-2xl font-bold">{historyStats.total}</p>
-                      <p className="text-xs opacity-90">Total Attempts</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="border-0 bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <CheckCircle2 className="h-8 w-8 opacity-90" />
-                    <div>
-                      <p className="text-2xl font-bold">
-                        {historyStats.total > 0 ? Math.round((historyStats.correct / historyStats.total) * 100) : 0}%
-                      </p>
-                      <p className="text-xs opacity-90">Correct Rate</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="border-0 bg-gradient-to-br from-amber-500 to-orange-600 text-white">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <Zap className="h-8 w-8 opacity-90" />
-                    <div>
-                      <p className="text-2xl font-bold">{historyStats.xp}</p>
-                      <p className="text-xs opacity-90">Total XP Earned</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Topic Filter */}
-              <div className="flex items-center gap-3">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filter by Topic:</span>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={historyTopicFilter === "all" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setHistoryTopicFilter("all")}
-                  >
-                    All Topics
-                  </Button>
-                  {topics.map((topic) => (
-                    <Button
-                      key={topic.id}
-                      variant={historyTopicFilter === topic.id ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setHistoryTopicFilter(topic.id)}
-                    >
-                      {topic.name}
-                    </Button>
-                  ))}
+              <div className="grid gap-px bg-zinc-800/60 border border-zinc-800/60 grid-cols-3">
+                <div className="bg-[#0d0d0d] p-4">
+                  <div className="text-[10px] uppercase tracking-widest text-zinc-600">attempts</div>
+                  <div className="text-2xl font-bold text-zinc-100 mt-1">{historyStats.total}</div>
+                </div>
+                <div className="bg-[#0d0d0d] p-4">
+                  <div className="text-[10px] uppercase tracking-widest text-zinc-600">accuracy</div>
+                  <div className="text-2xl font-bold text-emerald-400 mt-1">
+                    {historyStats.total > 0 ? Math.round((historyStats.correct / historyStats.total) * 100) : 0}%
+                  </div>
+                </div>
+                <div className="bg-[#0d0d0d] p-4">
+                  <div className="text-[10px] uppercase tracking-widest text-zinc-600">xp earned</div>
+                  <div className="text-2xl font-bold text-[#c4f000] mt-1">{historyStats.xp}</div>
                 </div>
               </div>
 
-              {/* Attempts List */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Flame className="h-5 w-5 text-orange-500" />
-                    {historyTopicFilter === "all" ? "All Exercise Attempts" : `${topics.find(t => t.id === historyTopicFilter)?.name || "Topic"} Attempts`}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-mono">filter:</span>
+                <button
+                  onClick={() => setHistoryTopicFilter("all")}
+                  className={cn(
+                    "px-2.5 py-1 text-xs border transition-colors",
+                    historyTopicFilter === "all"
+                      ? "border-[#c4f000] text-[#c4f000] bg-[#c4f000]/5"
+                      : "border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  all
+                </button>
+                {topics.map((topic) => (
+                  <button
+                    key={topic.id}
+                    onClick={() => setHistoryTopicFilter(topic.id)}
+                    className={cn(
+                      "px-2.5 py-1 text-xs border transition-colors",
+                      historyTopicFilter === topic.id
+                        ? "border-[#c4f000] text-[#c4f000] bg-[#c4f000]/5"
+                        : "border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                    )}
+                  >
+                    {topic.name}
+                  </button>
+                ))}
+              </div>
+
+              <div className="border border-zinc-800/60 bg-[#0d0d0d]">
+                <div className="p-4 border-b border-zinc-800/60">
+                  <h3 className="font-semibold text-sm">
+                    {historyTopicFilter === "all" ? "all attempts" : topics.find((t) => t.id === historyTopicFilter)?.name}
+                  </h3>
+                </div>
+                <div className="divide-y divide-zinc-800/40 max-h-96 overflow-y-auto">
                   {filteredHistoryAttempts.length === 0 ? (
-                    <div className="text-center py-8">
-                      <History className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-                      <p className="text-sm text-muted-foreground">No attempts found for this filter.</p>
-                    </div>
+                    <div className="p-8 text-center text-zinc-500 text-sm">no attempts for this filter</div>
                   ) : (
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {filteredHistoryAttempts.map((attempt) => (
-                        <div
-                          key={attempt.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            {attempt.isCorrect ? (
-                              <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-                            ) : (
-                              <XCircle className="h-5 w-5 text-red-500 shrink-0" />
-                            )}
-                            <div>
-                              <p className="font-medium text-sm">{attempt.exerciseTitle}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <Clock className="h-3 w-3" />
-                                {formatTime(attempt.createdAt)}
-                                <span className="mx-1">•</span>
-                                {topics.find(t => t.id === attempt.topicId)?.name || attempt.topicId}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={attempt.isCorrect ? "default" : "destructive"} className="text-xs">
-                              {attempt.isCorrect ? "Correct" : "Incorrect"}
-                            </Badge>
-                            {attempt.xpEarned > 0 && (
-                              <Badge variant="outline" className="text-xs flex items-center gap-1">
-                                <Zap className="h-3 w-3 text-yellow-500" />
-                                +{attempt.xpEarned} XP
-                              </Badge>
-                            )}
+                    filteredHistoryAttempts.map((attempt) => (
+                      <div key={attempt.id} className="flex items-center justify-between p-3 hover:bg-zinc-900/40 transition-colors">
+                        <div className="flex items-center gap-3">
+                          {attempt.isCorrect ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-rose-400 shrink-0" />
+                          )}
+                          <div>
+                            <p className="font-medium text-sm">{attempt.exerciseTitle}</p>
+                            <p className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(attempt.createdAt)}
+                              {attempt.topicId && (
+                                <>
+                                  <span className="mx-1 text-zinc-700">·</span>
+                                  {topics.find((t) => t.id === attempt.topicId)?.name || attempt.topicId}
+                                </>
+                              )}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wider", attempt.isCorrect ? "text-emerald-400 border-emerald-400/30" : "text-rose-400 border-rose-400/30")}>
+                            {attempt.isCorrect ? "correct" : "incorrect"}
+                          </Badge>
+                          {attempt.xpEarned > 0 && (
+                            <Badge variant="outline" className="text-[10px] text-zinc-300 border-zinc-700">
+                              <Zap className="h-3 w-3 mr-1" />+{attempt.xpEarned}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           ) : (
-            <Card>
-              <CardContent className="p-8 text-center space-y-4">
-                <History className="h-12 w-12 mx-auto text-muted-foreground/40" />
-                <h3 className="text-lg font-semibold">No Exercise History Yet</h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Complete exercises in quizzes to start building your history. Your attempts will appear here.
+            <div className="border border-zinc-800/60 bg-[#0d0d0d] p-12 text-center space-y-4">
+              <History className="h-12 w-12 mx-auto text-zinc-700" />
+              <div>
+                <h3 className="text-lg font-semibold">no history yet</h3>
+                <p className="text-sm text-zinc-500 max-w-md mx-auto mt-1">
+                  complete exercises to build your history. everything you attempt shows up here.
                 </p>
-                <Button onClick={() => setActiveTab("quiz")}>
-                  Start a Quiz
-                </Button>
-              </CardContent>
-            </Card>
+              </div>
+              <Button onClick={() => setActiveTab("topics")} className="bg-[#c4f000] text-black hover:bg-[#b3d800]">
+                start practicing
+              </Button>
+            </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="solver" className="mt-4">
+          <div className="border border-zinc-800/60 bg-[#0d0d0d] p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[#c4f000]" />
+                  leetcode-style problems
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5">write actual code. pass real tests. earn XP.</p>
+              </div>
+              <Button asChild size="sm" className="bg-[#c4f000] text-black hover:bg-[#b3d800]">
+                <Link href="/solve">open solver <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+              </Button>
+            </div>
+
+            <div className="space-y-1.5">
+              {getProblems().slice(0, 5).map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/solve?p=${p.slug}`}
+                  className="flex items-center justify-between p-3 border border-zinc-800/40 hover:border-zinc-700 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    {isSolved(p.slug) ? (
+                      <CheckCircle2 className="h-4 w-4 text-[#c4f000]" />
+                    ) : (
+                      <div className="h-4 w-4 border border-zinc-700" />
+                    )}
+                    <div>
+                      <p className={cn("font-medium text-sm", isSolved(p.slug) ? "text-zinc-400" : "text-zinc-100")}>{p.title}</p>
+                      <p className="text-xs text-zinc-500 capitalize">{p.topic} · {p.tags.slice(0, 2).join(", ")}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wider", difficultyColor[p.difficulty])}>
+                      {p.difficulty}
+                    </Badge>
+                    <span className="text-xs text-zinc-500 flex items-center gap-1">
+                      <Zap className="h-3 w-3" />{p.xp}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 text-zinc-600 group-hover:text-[#c4f000] transition-colors" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div className="mt-3 text-center">
+              <Link href="/solve" className="text-xs text-zinc-500 hover:text-[#c4f000] transition-colors inline-flex items-center gap-1">
+                view all {getProblems().length} problems <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

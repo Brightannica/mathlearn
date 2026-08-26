@@ -1,22 +1,26 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { evaluate } from "mathjs";
-import { Calculator, Sigma, Grid3x3, Ruler } from "lucide-react";
+import { Calculator, Sigma, Grid3x3, Ruler, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GraphingCalculator } from "@/components/graphing-calculator";
+import { MatrixSolver } from "@/components/matrix-solver";
 
 export function ScientificCalculator() {
   const [display, setDisplay] = useState("0");
   const [history, setHistory] = useState<string[]>([]);
+  const [angleMode, setAngleMode] = useState<"DEG" | "RAD">("DEG");
 
   const buttons = [
     ["C", "(", ")", "÷"],
-    ["7", "8", "9", "×"],
-    ["4", "5", "6", "−"],
-    ["1", "2", "3", "+"],
+    ["sin", "cos", "tan", "×"],
+    ["7", "8", "9", "−"],
+    ["4", "5", "6", "+"],
+    ["1", "2", "3", "π"],
     ["0", ".", "⌫", "="],
   ];
 
@@ -27,230 +31,112 @@ export function ScientificCalculator() {
       setDisplay(display.length > 1 ? display.slice(0, -1) : "0");
     } else if (btn === "=") {
       try {
-        const expr = display.replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+        let expr = display
+          .replace(/×/g, "*")
+          .replace(/÷/g, "/")
+          .replace(/−/g, "-")
+          .replace(/π/g, "pi")
+          .replace(/sin\(/g, angleMode === "DEG" ? "sin(pi/180*" : "sin(")
+          .replace(/cos\(/g, angleMode === "DEG" ? "cos(pi/180*" : "cos(")
+          .replace(/tan\(/g, angleMode === "DEG" ? "tan(pi/180*" : "tan(");
+        // Balance extra parens for angle conversion
+        const openCount = (display.match(/\(/g) || []).length;
+        const closeCount = (display.match(/\)/g) || []).length;
+        if (angleMode === "DEG" && openCount > closeCount) {
+          expr += ")".repeat(openCount - closeCount);
+        }
         const result = evaluate(expr);
-        setHistory([`${display} = ${result}`, ...history].slice(0, 5));
-        setDisplay(String(result));
+        setHistory([`${display} = ${typeof result === "number" ? result.toString().slice(0, 12) : result}`, ...history].slice(0, 5));
+        setDisplay(typeof result === "number" ? String(parseFloat(result.toFixed(8))) : String(result));
       } catch {
-        setDisplay("Error");
+        setDisplay("error");
       }
+    } else if (["sin", "cos", "tan"].includes(btn)) {
+      setDisplay(display === "0" ? `${btn}(` : display + `${btn}(`);
     } else {
       setDisplay(display === "0" ? btn : display + btn);
     }
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Scientific Calculator</CardTitle>
-          <CardDescription>Perform calculations with basic operations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 rounded-lg bg-muted p-4 text-right text-3xl font-mono">
-            {display}
+    <div className="border border-zinc-800/60 bg-[#0d0d0d]">
+      <div className="p-4 border-b border-zinc-800/60 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Calculator className="h-4 w-4 text-zinc-500" />
+          <span className="font-semibold text-sm">Scientific Calculator</span>
+        </div>
+        <div className="flex border border-zinc-800">
+          {(["DEG", "RAD"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setAngleMode(m)}
+              className={cn(
+                "px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider transition-colors",
+                angleMode === m
+                  ? "bg-[#c4f000] text-black"
+                  : "text-zinc-500 hover:text-zinc-100"
+              )}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        <div className="border border-zinc-800 bg-[#0a0a0a] p-4 text-right">
+          <div className="text-xs text-zinc-600 font-mono h-4 overflow-hidden truncate">
+            {history[0]?.split(" = ")[0] || " "}
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {buttons.flat().map((btn, i) => (
-              <Button
-                key={i}
-                variant={btn === "=" ? "default" : btn.match(/[0-9.]/) ? "secondary" : "outline"}
-                className="h-12 text-lg font-semibold"
-                onClick={() => handleClick(btn)}
-              >
-                {btn}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No calculations yet</p>
-          ) : (
-            <ul className="space-y-1 font-mono text-sm">
+          <div className="text-3xl font-mono text-zinc-100 mt-1 truncate">{display}</div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-1.5">
+          {buttons.flat().map((btn, i) => (
+            <button
+              key={i}
+              onClick={() => handleClick(btn)}
+              className={cn(
+                "h-12 font-mono text-sm border transition-colors",
+                btn === "="
+                  ? "bg-[#c4f000] text-black border-[#c4f000] hover:bg-[#b3d800] font-bold"
+                  : btn === "C"
+                  ? "border-zinc-800 text-rose-400 hover:bg-zinc-900 hover:border-rose-400/30"
+                  : btn === "⌫"
+                  ? "border-zinc-800 text-amber-400 hover:bg-zinc-900 hover:border-amber-400/30"
+                  : ["÷", "×", "−", "+"].includes(btn) || ["sin", "cos", "tan", "π"].includes(btn)
+                  ? "border-zinc-800 text-[#c4f000] hover:bg-zinc-900 hover:border-[#c4f000]/30"
+                  : "border-zinc-800 text-zinc-100 hover:bg-zinc-900 hover:border-zinc-700"
+              )}
+            >
+              {btn}
+            </button>
+          ))}
+        </div>
+
+        {history.length > 0 && (
+          <div className="border border-zinc-800/60 bg-[#0a0a0a] p-3">
+            <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-mono mb-2">// history</div>
+            <div className="space-y-1">
               {history.map((h, i) => (
-                <li key={i} className="rounded bg-muted/50 px-2 py-1">{h}</li>
+                <div key={i} className="text-xs font-mono text-zinc-400 truncate">{h}</div>
               ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
-  );
-}
-
-export function GraphingCalculator() {
-  const [expr, setExpr] = useState("x^2");
-  const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
-
-  useMemo(() => {
-    const pts: { x: number; y: number }[] = [];
-    try {
-      const fn = (x: number) => evaluate(expr, { x });
-      for (let x = -10; x <= 10; x += 0.5) {
-        const y = fn(x);
-        if (typeof y === "number" && isFinite(y)) {
-          pts.push({ x, y: y as number });
-        }
-      }
-      setPoints(pts);
-    } catch {
-      setPoints([]);
-    }
-  }, [expr]);
-
-  const width = 500;
-  const height = 400;
-  const scaleX = width / 20;
-  const scaleY = height / 20;
-  const toPx = (x: number, y: number) => ({
-    px: width / 2 + x * scaleX,
-    py: height / 2 - y * scaleY,
-  });
-
-  const path = points
-    .map((p, i) => {
-      const { px, py } = toPx(p.x, p.y);
-      return `${i === 0 ? "M" : "L"} ${px} ${py}`;
-    })
-    .join(" ");
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Graphing Calculator</CardTitle>
-        <CardDescription>Plot functions of x</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4 flex gap-2">
-          <span className="flex items-center px-3 rounded-md bg-muted font-mono text-lg">y =</span>
-          <Input
-            value={expr}
-            onChange={(e) => setExpr(e.target.value)}
-            className="font-mono text-lg"
-            placeholder="x^2"
-          />
-        </div>
-        <svg width={width} height={height} className="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border">
-          <line x1={width / 2} y1={0} x2={width / 2} y2={height} stroke="currentColor" className="text-muted-foreground" strokeWidth={1} />
-          <line x1={0} y1={height / 2} x2={width} y2={height / 2} stroke="currentColor" className="text-muted-foreground" strokeWidth={1} />
-          <path d={path} stroke="hsl(var(--primary))" fill="none" strokeWidth={2} />
-        </svg>
-        <p className="mt-2 text-sm text-muted-foreground">Try: x^2, sin(x), 2*x+1, sqrt(x)</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function MatrixCalculator() {
-  const [rows, setRows] = useState(2);
-  const [cols, setCols] = useState(2);
-  const [matrix, setMatrix] = useState<string[][]>(() => [["1", "2"], ["3", "4"]]);
-
-  const resetMatrix = () => {
-    const next: string[][] = [];
-    for (let r = 0; r < rows; r++) {
-      next[r] = [];
-      for (let c = 0; c < cols; c++) {
-        next[r][c] = matrix[r]?.[c] ?? "0";
-      }
-    }
-    setMatrix(next);
-  };
-
-  const updateCell = (r: number, c: number, val: string) => {
-    setMatrix((prev) => {
-      const next = prev.map((row) => [...row]);
-      next[r][c] = val;
-      return next;
-    });
-  };
-
-  const getMinor = (m: number[][], r: number, c: number) => {
-    const minor: number[][] = [];
-    for (let i = 0; i < m.length; i++) {
-      if (i === r) continue;
-      const row: number[] = [];
-      for (let j = 0; j < m[i].length; j++) {
-        if (j === c) continue;
-        row.push(m[i][j]);
-      }
-      minor.push(row);
-    }
-    return minor;
-  };
-
-  const determinant = (m: number[][]): number | null => {
-    if (m.length === 0 || m[0].length === 0) return null;
-    if (m.length !== m[0].length) return null;
-    if (m.length === 1) return m[0][0];
-    if (m.length === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
-
-    let det = 0;
-    for (let c = 0; c < m[0].length; c++) {
-      const sign = c % 2 === 0 ? 1 : -1;
-      det += sign * m[0][c] * determinant(getMinor(m, 0, c))!;
-    }
-    return det;
-  };
-
-  const numericMatrix = matrix.map((row) => row.map((v) => parseFloat(v)));
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Matrix Calculator</CardTitle>
-        <CardDescription>Determinants & operations</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex gap-4 mb-4">
-          <div>
-            <label className="text-sm text-muted-foreground">Rows</label>
-            <Input type="number" value={rows} min={2} max={4} onChange={(e) => { setRows(Number(e.target.value)); }} className="w-16" />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Cols</label>
-            <Input type="number" value={cols} min={2} max={4} onChange={(e) => { setCols(Number(e.target.value)); }} className="w-16" />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={resetMatrix} variant="secondary" className="h-9 text-xs">Reset</Button>
-          </div>
-        </div>
-        <div className="inline-block rounded-lg border-2 border-primary p-3">
-          <div className="flex flex-col gap-2">
-            {Array.from({ length: rows }).map((_, r) => (
-              <div key={r} className="flex gap-2">
-                {Array.from({ length: cols }).map((_, c) => (
-                  <Input
-                    key={c}
-                    value={matrix[r]?.[c] ?? "0"}
-                    onChange={(e) => updateCell(r, c, e.target.value)}
-                    className="w-16 text-center font-mono"
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-4">
-          <p className="text-sm text-muted-foreground">Determinant:</p>
-          <p className="text-2xl font-bold font-mono">{rows === cols ? determinant(numericMatrix)?.toFixed(2) ?? "N/A" : "N/A (square matrix only)"}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
 export function UnitConverter() {
   const categories = {
-    Length: { m: 1, km: 1000, cm: 0.01, ft: 0.3048, in: 0.0254, mi: 1609.34 },
-    Mass: { kg: 1, g: 0.001, lb: 0.453592, oz: 0.0283495 },
-    Time: { s: 1, min: 60, hr: 3600, day: 86400 },
+    Length: { m: 1, km: 1000, cm: 0.01, mm: 0.001, ft: 0.3048, in: 0.0254, yd: 0.9144, mi: 1609.34 },
+    Mass: { kg: 1, g: 0.001, mg: 0.000001, lb: 0.453592, oz: 0.0283495, ton: 1000 },
+    Time: { s: 1, ms: 0.001, min: 60, hr: 3600, day: 86400, week: 604800, year: 31536000 },
+    Area: { "m²": 1, "km²": 1e6, "cm²": 0.0001, "ft²": 0.092903, acre: 4046.86, hectare: 10000 },
+    Volume: { L: 1, mL: 0.001, "m³": 1000, "ft³": 28.3168, gal: 3.78541, cup: 0.236588 },
+    Speed: { "m/s": 1, "km/h": 0.277778, "mph": 0.44704, "ft/s": 0.3048, knot: 0.514444 },
   };
   const [cat, setCat] = useState<keyof typeof categories>("Length");
   const [from, setFrom] = useState("m");
@@ -258,64 +144,83 @@ export function UnitConverter() {
   const [val, setVal] = useState("1");
 
   const convert = () => {
-    const units = categories[cat];
-    const base = parseFloat(val) * units[from as keyof typeof units];
-    const result = base / units[to as keyof typeof units];
-    return isFinite(result) ? result.toFixed(4) : "Error";
+    const units = categories[cat] as Record<string, number>;
+    const base = parseFloat(val) * (units[from] ?? 1);
+    const result = base / (units[to] ?? 1);
+    return isFinite(result) ? result.toFixed(6).replace(/\.?0+$/, "") : "error";
   };
 
+  const swap = () => { const t = from; setFrom(to); setTo(t); };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Unit Converter</CardTitle>
-        <CardDescription>Convert between units</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <select value={cat} onChange={(e) => { setCat(e.target.value as keyof typeof categories); setFrom("m"); setTo("m"); }} className="w-full rounded-md border bg-background px-3 py-2">
-            {Object.keys(categories).map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <div className="grid grid-cols-2 gap-2">
-            <Input type="number" value={val} onChange={(e) => setVal(e.target.value)} placeholder="Value" />
-            <select value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border bg-background px-2">
+    <div className="border border-zinc-800/60 bg-[#0d0d0d]">
+      <div className="p-4 border-b border-zinc-800/60 flex items-center gap-2">
+        <Ruler className="h-4 w-4 text-zinc-500" />
+        <span className="font-semibold text-sm">Unit Converter</span>
+      </div>
+      <div className="p-4 space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {(Object.keys(categories) as (keyof typeof categories)[]).map((c) => (
+            <button
+              key={c}
+              onClick={() => { setCat(c); setFrom("m"); setTo(Object.keys(categories[c])[0]); }}
+              className={cn(
+                "px-3 py-1.5 text-xs border transition-colors",
+                cat === c
+                  ? "border-[#c4f000] text-[#c4f000] bg-[#c4f000]/5"
+                  : "border-zinc-800 text-zinc-500 hover:text-zinc-100 hover:border-zinc-700"
+              )}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+          <div className="space-y-1.5">
+            <Input type="number" value={val} onChange={(e) => setVal(e.target.value)} className="bg-[#0a0a0a] border-zinc-800 text-zinc-100 font-mono text-lg h-12 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20" />
+            <select value={from} onChange={(e) => setFrom(e.target.value)} className="w-full h-9 bg-[#0a0a0a] border border-zinc-800 text-zinc-100 text-sm px-2 focus:border-[#c4f000] focus:outline-none">
               {Object.keys(categories[cat]).map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
-          <div className="text-center text-2xl">=</div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md bg-muted px-3 py-2 font-mono text-lg">{convert()}</div>
-            <select value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border bg-background px-2">
+          <button onClick={swap} className="w-8 h-8 border border-zinc-800 text-zinc-500 hover:border-[#c4f000] hover:text-[#c4f000] transition-colors">⇄</button>
+          <div className="space-y-1.5">
+            <div className="bg-[#0a0a0a] border border-[#c4f000]/30 h-12 px-3 flex items-center font-mono text-lg text-[#c4f000] font-semibold">{convert()}</div>
+            <select value={to} onChange={(e) => setTo(e.target.value)} className="w-full h-9 bg-[#0a0a0a] border border-zinc-800 text-zinc-100 text-sm px-2 focus:border-[#c4f000] focus:outline-none">
               {Object.keys(categories[cat]).map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        <div className="text-[10px] text-zinc-600 font-mono text-center">
+          {val} {from} = {convert()} {to}
+        </div>
+      </div>
+    </div>
   );
 }
 
 export default function ToolsPage() {
   const tools = [
-    { id: "scientific", name: "Scientific Calculator", icon: Calculator, desc: "Basic & scientific operations" },
-    { id: "graphing", name: "Graphing Calculator", icon: Sigma, desc: "Plot functions visually" },
-    { id: "matrix", name: "Matrix Calculator", icon: Grid3x3, desc: "Determinants & operations" },
-    { id: "converter", name: "Unit Converter", icon: Ruler, desc: "Convert units easily" },
+    { id: "graphing", name: "Graphing Calculator", icon: LineChart, desc: "Plot functions, pan, zoom" },
+    { id: "matrix", name: "Matrix Solver", icon: Grid3x3, desc: "Solve Ax = b, determinant" },
+    { id: "scientific", name: "Scientific", icon: Calculator, desc: "DEG/RAD calculator" },
+    { id: "converter", name: "Unit Converter", icon: Ruler, desc: "Length, mass, time…" },
   ];
-  const [active, setActive] = useState("scientific");
+  const [active, setActive] = useState("graphing");
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-primary" />
-            Math Tools
+          <div className="text-xs text-[#c4f000] uppercase tracking-widest mb-1">// interactive tools</div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Sigma className="h-7 w-7" />
+            tools
           </h1>
-          <p className="text-muted-foreground mt-1 text-sm">Interactive calculators & converters</p>
+          <p className="text-zinc-500 mt-1 text-sm">calculators, solvers, and converters. all in your browser.</p>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-px bg-zinc-800/60 border border-zinc-800/60 grid-cols-2 sm:grid-cols-4">
         {tools.map((t) => {
           const Icon = t.icon;
           return (
@@ -323,22 +228,26 @@ export default function ToolsPage() {
               key={t.id}
               onClick={() => setActive(t.id)}
               className={cn(
-                "text-left rounded-xl border p-4 transition-all hover:shadow-md",
-                active === t.id ? "border-primary bg-primary/5" : "bg-card"
+                "p-4 text-left transition-colors",
+                active === t.id ? "bg-[#0d0d0d]" : "bg-[#0a0a0a] hover:bg-[#0d0d0d]"
               )}
             >
-              <Icon className={cn("h-6 w-6 mb-2", active === t.id ? "text-primary" : "text-muted-foreground")} />
-              <p className="font-semibold text-sm">{t.name}</p>
-              <p className="text-xs text-muted-foreground">{t.desc}</p>
+              <div className="flex items-center gap-2 mb-1.5">
+                <Icon className={cn("h-4 w-4", active === t.id ? "text-[#c4f000]" : "text-zinc-500")} />
+                <span className={cn("font-semibold text-sm", active === t.id ? "text-zinc-100" : "text-zinc-300")}>{t.name}</span>
+              </div>
+              <p className="text-xs text-zinc-500">{t.desc}</p>
             </button>
           );
         })}
       </div>
 
-      {active === "scientific" && <ScientificCalculator />}
-      {active === "graphing" && <GraphingCalculator />}
-      {active === "matrix" && <MatrixCalculator />}
-      {active === "converter" && <UnitConverter />}
+      <div className="mt-6">
+        {active === "graphing" && <GraphingCalculator />}
+        {active === "matrix" && <MatrixSolver />}
+        {active === "scientific" && <ScientificCalculator />}
+        {active === "converter" && <UnitConverter />}
+      </div>
     </div>
   );
 }

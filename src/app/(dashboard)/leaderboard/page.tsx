@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useCallback, memo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Flame, Trophy, Zap, Crown, Medal, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Flame, Trophy, Zap, Crown, Medal, Search, ChevronRight, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useDashboardData } from "@/hooks/use-supabase-data";
-import { fetchJSON } from "@/hooks/use-supabase-data";
+import { useSession } from "next-auth/react";
+import { getState, subscribe } from "@/lib/local-state";
 
 type Student = {
   rank: number;
@@ -19,221 +18,257 @@ type Student = {
   grade: string;
   xp: number;
   streak: number;
-  longestStreak: number;
-  avatar: string | null;
+  weeklyXP: number;
   isYou: boolean;
-  weeklyXP?: number;
 };
 
-const TopCard = memo(function TopCard({ rank, name, xp, icon, gradient, border }: { rank: number; name: string; xp: number; icon: React.ReactNode; gradient: string; border: string }) {
-  return (
-    <Card className={cn("relative overflow-hidden bg-gradient-to-br border-2", gradient, border)}>
-      <CardContent className="pt-6 text-center">
-        <div className="absolute top-2 right-2">{icon}</div>
-        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
-          #{rank}
-        </div>
-        <p className="font-bold text-lg">{name}</p>
-        <p className="text-sm text-muted-foreground">{xp.toLocaleString()} XP</p>
-      </CardContent>
-    </Card>
-  );
-});
-TopCard.displayName = "TopCard";
+const MOCK_NAMES = [
+  "Emma W.", "Liam C.", "Sofia M.", "Noah B.", "Ava P.", "Oliver H.", "Mia S.",
+  "James K.", "Charlotte L.", "Benjamin T.", "Amelia R.", "Lucas G.", "Harper J.",
+  "Ethan D.", "Evelyn S.", "Alexander M.", "Abigail F.", "Daniel P.", "Emily H.", "Matthew N.",
+  "Elizabeth K.", "Jackson B.", "Sofia L.", "David W.", "Avery R.", "Joseph T.", "Ella M.",
+  "Samuel C.", "Scarlett G.", "Henry F.", "Grace P.", "Owen H.", "Chloe B.", "Wyatt D.",
+];
 
-const StudentCard = memo(function StudentCard({
-  student
-}: {
-  student: Student;
-}) {
-  return (
-    <Card
-      className={cn(
-        "transition-all hover:shadow-md",
-        student.isYou && "border-primary bg-primary/5",
-        student.rank <= 3 && "border-yellow-500/30"
-      )}
-    >
-      <CardContent className="pt-4">
-        <div className="flex items-center gap-4">
-          <div className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold",
-            student.rank <= 3 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          )}>
-            {student.rank}
-          </div>
-          <Avatar>
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">{student.name[0]}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold">{student.name}{student.isYou && <span className="text-primary"> (You)</span>}</p>
-            <Badge variant="outline" className="text-xs mt-0.5">Grade {student.grade}</Badge>
-          </div>
-          <div className="hidden sm:flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1"><Flame className="h-4 w-4 text-orange-500" />{student.streak}</span>
-          </div>
-          <div className="text-right">
-            <p className="font-bold flex items-center justify-end gap-1">
-              <Zap className="h-4 w-4 text-primary" />{student.xp.toLocaleString()}
-            </p>
-            <p className="text-xs text-muted-foreground">XP</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-});
-StudentCard.displayName = "StudentCard";
+const GRADES = ["5", "6", "7", "8", "9", "10", "11", "12"];
+
+function generateMockLeaderboard(currentUserXp: number, currentUserName: string): Student[] {
+  // Seed based on day so it's stable per day
+  const seed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const rng = (n: number) => {
+    const x = Math.sin(seed + n) * 10000;
+    return x - Math.floor(x);
+  };
+  const students: Student[] = [];
+  for (let i = 0; i < MOCK_NAMES.length; i++) {
+    const xp = Math.floor(rng(i) * 6000) + 500;
+    students.push({
+      rank: 0,
+      id: `mock-${i}`,
+      name: MOCK_NAMES[i],
+      grade: GRADES[Math.floor(rng(i + 100) * GRADES.length)],
+      xp,
+      streak: Math.floor(rng(i + 200) * 25) + 1,
+      weeklyXP: Math.floor(rng(i + 300) * 500) + 50,
+      isYou: false,
+    });
+  }
+  students.push({
+    rank: 0,
+    id: "you",
+    name: currentUserName,
+    grade: "9",
+    xp: currentUserXp,
+    streak: 0,
+    weeklyXP: 0,
+    isYou: true,
+  });
+  students.sort((a, b) => b.xp - a.xp);
+  students.forEach((s, i) => (s.rank = i + 1));
+  return students;
+}
 
 export default function LeaderboardPage() {
-  const { stats, loading: dashboardLoading } = useDashboardData();
-  const [globalStudents, setGlobalStudents] = useState<Student[]>([]);
-  const [weeklyStudents, setWeeklyStudents] = useState<Student[]>([]);
-  const [gradeStudents, setGradeStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedGrade, setSelectedGrade] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState("global");
+  const { data: session } = useSession();
+  const [tab, setTab] = useState<"global" | "weekly">("global");
+  const [search, setSearch] = useState("");
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
+  const [tick, setTick] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadLeaderboard = useCallback(async (type: string, grade?: string) => {
-    setLoading(true);
-    try {
-      const url = grade && grade !== "all" ? `/api/leaderboard?type=${type}&grade=${encodeURIComponent(grade)}` : `/api/leaderboard?type=${type}`;
-      const data = await fetchJSON<Student[]>(url);
-      if (type === "global") setGlobalStudents(data);
-      else if (type === "weekly") setWeeklyStudents(data);
-      else if (type === "grade") setGradeStudents(data);
-    } catch (err) {
-      console.error("Failed to load leaderboard:", err);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    const unsub = subscribe(() => setTick((t) => t + 1));
+    return () => { unsub(); };
   }, []);
 
-  const handleActiveTabChange = useCallback((newTab: string) => {
-    setActiveTab(newTab);
-    loadLeaderboard(newTab, newTab === "grade" ? selectedGrade : undefined);
-  }, [selectedGrade, loadLeaderboard]);
+  const state = getState();
+  void tick;
 
-  const handleGradeChange = useCallback((newGrade: string) => {
-    setSelectedGrade(newGrade);
-    loadLeaderboard(activeTab, newGrade === "all" ? undefined : newGrade);
-  }, [activeTab, loadLeaderboard]);
+  const userName = session?.user?.name || "You";
+  const userXp = state.xp || 3180;
+
+  const students = useMemo(() => generateMockLeaderboard(userXp, userName), [userXp, userName]);
 
   const handleRefresh = useCallback(() => {
-    loadLeaderboard(activeTab, activeTab === "grade" ? selectedGrade : undefined);
-  }, [activeTab, selectedGrade, loadLeaderboard]);
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 800);
+  }, []);
 
-  const currentUser: Student | null = stats
-    ? {
-        rank: 0,
-        id: "you",
-        name: "You",
-        grade: "9",
-        xp: stats.totalXP,
-        streak: stats.currentStreak,
-        longestStreak: stats.longestStreak,
-        avatar: null,
-        isYou: true,
-        weeklyXP: Math.round(stats.totalXP * 0.05),
-      }
-    : null;
+  const sorted = useMemo(() => {
+    const base = tab === "global" ? [...students].sort((a, b) => b.xp - a.xp) : [...students].sort((a, b) => b.weeklyXP - a.weeklyXP);
+    return base.filter((s) => {
+      if (gradeFilter !== "all" && s.grade !== gradeFilter) return false;
+      if (search.trim() && !s.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [students, tab, gradeFilter, search]);
 
-  const displayGlobal = currentUser ? [...globalStudents.filter(s => !s.isYou), currentUser].sort((a, b) => b.xp - a.xp).map((s, i) => ({ ...s, rank: i + 1 })) : globalStudents;
-  const displayWeekly = currentUser ? [...weeklyStudents.filter(s => !s.isYou), currentUser].sort((a, b) => (b.weeklyXP || 0) - (a.weeklyXP || 0)).map((s, i) => ({ ...s, rank: i + 1 })) : weeklyStudents;
-  const displayGrade = currentUser ? [...gradeStudents.filter(s => !s.isYou), currentUser].sort((a, b) => b.xp - a.xp).map((s, i) => ({ ...s, rank: i + 1 })) : gradeStudents;
+  const top3 = sorted.slice(0, 3);
+  const you = sorted.find((s) => s.isYou);
+  const youRank = you?.rank;
 
   return (
     <div className="space-y-6 animate-in fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
+          <div className="text-xs text-[#c4f000] uppercase tracking-widest mb-1">// rankings</div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Crown className="h-8 w-8 text-primary" /> Leaderboard
+            <Trophy className="h-7 w-7" />
+            leaderboard
           </h1>
-          <p className="text-muted-foreground mt-1">See how you rank among fellow learners</p>
+          <p className="text-zinc-500 mt-1 text-sm">see how you stack up. climb the ranks.</p>
         </div>
-        <Button variant="outline" onClick={handleRefresh} disabled={loading || dashboardLoading}>
-          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-          Refresh
+        <Button variant="outline" onClick={handleRefresh} className="border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900">
+          <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
+          refresh
         </Button>
       </div>
 
-      {(displayGlobal.length >= 3) && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <TopCard rank={displayGlobal[0]?.rank ?? 1} name={displayGlobal[0]?.name ?? "—"} xp={displayGlobal[0]?.xp ?? 0} icon={<Trophy className="h-6 w-6 text-yellow-500" />} gradient="from-yellow-400/20 to-yellow-500/5" border="border-yellow-500/40" />
-          <TopCard rank={displayGlobal[1]?.rank ?? 2} name={displayGlobal[1]?.name ?? "—"} xp={displayGlobal[1]?.xp ?? 0} icon={<Medal className="h-6 w-6 text-slate-400" />} gradient="from-slate-400/20 to-slate-500/5" border="border-slate-400/40" />
-          <TopCard rank={displayGlobal[2]?.rank ?? 3} name={displayGlobal[2]?.name ?? "—"} xp={displayGlobal[2]?.xp ?? 0} icon={<Medal className="h-6 w-6 text-amber-700" />} gradient="from-amber-700/20 to-amber-900/5" border="border-amber-700/40" />
+      {you && (
+        <div className="border border-[#c4f000]/40 bg-[#c4f000]/5 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#c4f000] flex items-center justify-center text-black font-bold">
+              #{youRank}
+            </div>
+            <div>
+              <div className="font-semibold">your rank</div>
+              <div className="text-xs text-zinc-500">keep practicing to climb higher</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-[#c4f000] font-mono">{userXp.toLocaleString()}</div>
+            <div className="text-xs text-zinc-500">XP</div>
+          </div>
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={handleActiveTabChange} className="w-full">
-        <TabsList>
-          <TabsTrigger value="global">Global</TabsTrigger>
-          <TabsTrigger value="grade">By Grade</TabsTrigger>
-          <TabsTrigger value="weekly">This Week</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="search..."
+            className="pl-9 bg-[#0d0d0d] border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:border-[#c4f000] focus-visible:ring-[#c4f000]/20"
+          />
+        </div>
+        <div className="flex gap-1.5">
+          {(["global", "weekly"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                "px-3 py-1.5 text-xs uppercase tracking-wider border transition-colors",
+                tab === t
+                  ? "border-[#c4f000] text-[#c4f000] bg-[#c4f000]/5"
+                  : "border-zinc-800 text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <select
+          value={gradeFilter}
+          onChange={(e) => setGradeFilter(e.target.value)}
+          className="px-3 py-1.5 bg-[#0d0d0d] border border-zinc-800 text-zinc-100 text-sm focus:border-[#c4f000] focus:outline-none"
+        >
+          <option value="all">all grades</option>
+          {GRADES.map((g) => <option key={g} value={g}>grade {g}</option>)}
+        </select>
+      </div>
 
-        <TabsContent value="global" className="space-y-2">
-          {loading ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <RefreshCw className="h-8 w-8 text-muted-foreground mx-auto mb-3 animate-spin" />
-                <p className="text-sm text-muted-foreground">Loading leaderboard...</p>
-              </CardContent>
-            </Card>
-          ) : displayGlobal.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                No students yet. Be the first to earn XP!
-              </CardContent>
-            </Card>
-          ) : (
-            displayGlobal.map((s) => (
-              <StudentCard key={`${s.id}-${s.rank}`} student={s} />
-            ))
-          )}
-        </TabsContent>
+      {top3.length === 3 && (
+        <div className="grid grid-cols-3 gap-px bg-zinc-800/60 border border-zinc-800/60">
+          {[
+            { student: top3[1], icon: Medal, iconColor: "text-zinc-400" },
+            { student: top3[0], icon: Crown, iconColor: "text-yellow-400" },
+            { student: top3[2], icon: Medal, iconColor: "text-amber-700" },
+          ].map(({ student, icon: Icon, iconColor }, displayIdx) => {
+            const ranks = [2, 1, 3];
+            const rank = ranks[displayIdx];
+            const isFirst = rank === 1;
+            return (
+              <div key={student.id} className="bg-[#0d0d0d] p-5 relative">
+                <Icon className={cn("h-6 w-6 absolute top-3 right-3", iconColor)} />
+                <div className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">// rank {rank}</div>
+                <div className="flex flex-col items-center mt-3">
+                  <div className="relative">
+                    <Avatar className={cn("h-16 w-16", isFirst && "ring-2 ring-[#c4f000] ring-offset-2 ring-offset-[#0d0d0d]")}>
+                      <AvatarFallback className="bg-zinc-800 text-zinc-200 font-semibold text-lg">{student.name[0]}</AvatarFallback>
+                    </Avatar>
+                    {isFirst && (
+                      <Crown className="absolute -top-3 left-1/2 -translate-x-1/2 h-5 w-5 text-[#c4f000]" />
+                    )}
+                  </div>
+                  <div className="mt-3 text-center">
+                    <div className={cn("font-semibold", isFirst && "text-[#c4f000]")}>{student.name}</div>
+                    <Badge variant="outline" className="text-[10px] mt-1 border-zinc-700 text-zinc-400">grade {student.grade}</Badge>
+                  </div>
+                  <div className="mt-3 text-center">
+                    <div className="text-2xl font-bold text-zinc-100 font-mono">
+                      {tab === "global" ? student.xp.toLocaleString() : student.weeklyXP.toLocaleString()}
+                    </div>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">{tab === "global" ? "total XP" : "this week"}</div>
+                  </div>
+                  <div className="mt-2 flex items-center gap-1 text-xs text-orange-400">
+                    <Flame className="h-3 w-3" />
+                    <span className="font-mono">{student.streak}d</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-        <TabsContent value="grade" className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Select value={selectedGrade} onValueChange={handleGradeChange}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Select grade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Grades</SelectItem>
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <SelectItem key={i} value={String(i + 1)}>Grade {i + 1}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {displayGrade.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                No students found for this grade.
-              </CardContent>
-            </Card>
-          ) : (
-            displayGrade.map((s) => (
-              <StudentCard key={`${s.id}-${s.rank}`} student={s} />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="weekly" className="space-y-2">
-          {displayWeekly.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                No weekly activity yet. Complete some exercises to appear here!
-              </CardContent>
-            </Card>
-          ) : (
-            displayWeekly.map((s) => (
-              <StudentCard key={`${s.id}-${s.rank}`} student={s} />
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+      <div className="border border-zinc-800/60 bg-[#0d0d0d]">
+        <div className="p-4 border-b border-zinc-800/60 flex items-center justify-between">
+          <h3 className="font-semibold text-sm">{tab === "global" ? "all-time" : "this week"}</h3>
+          <span className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest">{sorted.length} shown</span>
+        </div>
+        <div className="divide-y divide-zinc-800/40 max-h-[600px] overflow-y-auto">
+          {sorted.map((s) => (
+            <div
+              key={s.id}
+              className={cn(
+                "flex items-center gap-4 p-3 hover:bg-zinc-900/40 transition-colors",
+                s.isYou && "bg-[#c4f000]/5 border-l-2 border-[#c4f000]"
+              )}
+            >
+              <div className={cn(
+                "w-8 h-8 shrink-0 flex items-center justify-center font-mono font-bold text-xs",
+                s.rank === 1 ? "bg-yellow-500 text-black" :
+                s.rank === 2 ? "bg-zinc-300 text-black" :
+                s.rank === 3 ? "bg-amber-700 text-white" :
+                s.isYou ? "bg-[#c4f000] text-black" : "text-zinc-500"
+              )}>
+                {s.rank}
+              </div>
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarFallback className="bg-zinc-800 text-zinc-200 font-semibold">{s.name[0]}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={cn("font-medium text-sm truncate", s.isYou && "text-[#c4f000]")}>
+                    {s.name}{s.isYou && " (you)"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
+                  <Badge variant="outline" className="text-[9px] border-zinc-800 text-zinc-500">grade {s.grade}</Badge>
+                  <span className="flex items-center gap-1"><Flame className="h-2.5 w-2.5 text-orange-400" />{s.streak}d</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold font-mono text-sm">
+                  {tab === "global" ? s.xp.toLocaleString() : s.weeklyXP.toLocaleString()}
+                </div>
+                <div className="text-[10px] text-zinc-500 font-mono">{tab === "global" ? "XP" : "/wk"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
