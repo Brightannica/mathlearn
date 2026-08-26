@@ -260,8 +260,8 @@ export default function LandingPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-zinc-800/60 border border-zinc-800/60">
             {[
-              { icon: Layers, k: "01", t: "Structured courses", d: "K through AP Calc. 5 courses, 14 lessons, each one building on the last. No scattered playlists.", c: "[courses]" },
-              { icon: Code2, k: "02", t: "LeetCode-style solver", d: "18+ problems with in-browser code runner. Write actual JavaScript, pass real test cases, earn XP.", c: "[solve]" },
+              { icon: Layers, k: "01", t: "8 courses", d: "K through AP Calc. Pre-alg, algebra I/II, geometry, trig, stats, calc. Each one a real sequence, not a pile of videos.", c: "[courses]" },
+              { icon: Code2, k: "02", t: "LeetCode-style solver", d: "71+ problems with in-browser code runner. Write actual JavaScript, pass real test cases, earn XP.", c: "[solve]" },
               { icon: Activity, k: "03", t: "Weakness map", d: "See exactly which sub-skill is costing you points. Drill that. Skip what you know.", c: "[analyze]" },
               { icon: GitBranch, k: "04", t: "Step-by-step grading", d: "Not just final answer. Each step is checked. Partial credit when you've earned it.", c: "[grade]" },
               { icon: Hash, k: "05", t: "Spaced repetition", d: "Problems resurface right before you'd forget them. Long-term memory, not cramming.", c: "[review]" },
@@ -399,10 +399,13 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
               { icon: "ƒ", title: "Algebra I", grade: "8–9", lessons: 6, color: "#c4f000" },
+              { icon: "±", title: "Pre-Algebra", grade: "6–7", lessons: 6, color: "#34d399" },
               { icon: "△", title: "Geometry", grade: "7–10", lessons: 4, color: "#60a5fa" },
               { icon: "∑", title: "Arithmetic", grade: "5–7", lessons: 4, color: "#fbbf24" },
               { icon: "σ", title: "Statistics", grade: "9–12", lessons: 2, color: "#a78bfa" },
               { icon: "∫", title: "Calculus", grade: "11–12", lessons: 2, color: "#f472b6" },
+              { icon: "∑₂", title: "Algebra II", grade: "10–11", lessons: 6, color: "#22d3ee" },
+              { icon: "∠", title: "Trigonometry", grade: "10–12", lessons: 4, color: "#fb923c" },
             ].map((course, i) => (
               <CourseCard key={course.title} {...course} delay={i * 50} />
             ))}
