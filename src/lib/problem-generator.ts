@@ -674,6 +674,185 @@ const trigonometryHard: Generator[] = [
   },
 ];
 
+// === WORD PROBLEMS ===
+const wordProblemsEasy: Generator[] = [
+  (rng) => {
+    const itemPrice = randInt(rng, 2, 8);
+    const quantity = randInt(rng, 3, 9);
+    const total = itemPrice * quantity;
+    return {
+      id: `wp-e1-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "easy",
+      question: `If apples cost $${itemPrice} each, how much do ${quantity} apples cost?`,
+      answer: total,
+      choices: generateChoices(rng, total, 4, 0.2),
+      explanation: `Total = price × quantity = $${itemPrice} × ${quantity} = $${total}.`,
+      xp: 10,
+      hint: `Multiply the price per apple by the number of apples.`,
+    };
+  },
+  (rng) => {
+    const total = randInt(rng, 20, 100);
+    const groups = randInt(rng, 2, 8);
+    return {
+      id: `wp-e2-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "easy",
+      question: `${total} cookies are split equally among ${groups} friends. How many does each get?`,
+      answer: Math.floor(total / groups),
+      choices: generateChoices(rng, Math.floor(total / groups), 4, 0.2),
+      explanation: `Each friend gets ${total} ÷ ${groups} = ${Math.floor(total / groups)} cookies.`,
+      xp: 10,
+      hint: `Divide the total by the number of friends.`,
+    };
+  },
+  (rng) => {
+    const start = randInt(rng, 20, 80);
+    const hours = randInt(rng, 2, 5);
+    const rate = randInt(rng, 3, 10);
+    const final = start + hours * rate;
+    return {
+      id: `wp-e3-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "easy",
+      question: `A tank has ${start} gallons. Water flows in at ${rate} gallons per hour. How many gallons after ${hours} hours?`,
+      answer: final,
+      choices: generateChoices(rng, final, 4, 0.2),
+      explanation: `Final = ${start} + (${rate} × ${hours}) = ${start} + ${hours * rate} = ${final} gallons.`,
+      xp: 10,
+      hint: `Add the starting amount to the total water added.`,
+    };
+  },
+  (rng) => {
+    const distance = randInt(rng, 60, 240);
+    const time = randInt(rng, 2, 4);
+    return {
+      id: `wp-e4-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "easy",
+      question: `A car travels ${distance} miles in ${time} hours. What's the average speed (mph)?`,
+      answer: Math.floor(distance / time),
+      choices: generateChoices(rng, Math.floor(distance / time), 4, 0.2),
+      explanation: `Speed = distance ÷ time = ${distance} ÷ ${time} = ${Math.floor(distance / time)} mph.`,
+      xp: 10,
+      hint: `Speed = distance / time.`,
+    };
+  },
+];
+
+const wordProblemsMedium: Generator[] = [
+  (rng) => {
+    const originalPrice = randInt(rng, 40, 150);
+    const discountPct = randInt(rng, 10, 40);
+    const discount = Math.round(originalPrice * discountPct / 100);
+    const salePrice = originalPrice - discount;
+    return {
+      id: `wp-m1-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "medium",
+      question: `A $${originalPrice} jacket is ${discountPct}% off. What's the sale price?`,
+      answer: salePrice,
+      choices: generateChoices(rng, salePrice, 4, 0.1),
+      explanation: `Discount = $${originalPrice} × ${discountPct}/100 = $${discount}. Sale price = $${originalPrice} - $${discount} = $${salePrice}.`,
+      xp: 15,
+      hint: `First calculate the discount, then subtract from the original price.`,
+    };
+  },
+  (rng) => {
+    const principal = randInt(rng, 500, 2000);
+    const years = randInt(rng, 2, 5);
+    const total = principal * Math.pow(1.05, years);
+    const answer = Math.round(total);
+    return {
+      id: `wp-m2-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "medium",
+      question: `$${principal} invested at 5% annual compound interest. What's the value after ${years} years? (round to nearest dollar)`,
+      answer,
+      choices: generateChoices(rng, answer, 4, 0.1),
+      explanation: `A = P(1 + r)^t = $${principal} × (1.05)^${years} = $${principal} × ${Math.pow(1.05, years).toFixed(3)} ≈ $${answer}.`,
+      xp: 15,
+      hint: `Compound interest formula: A = P(1 + r)^t.`,
+    };
+  },
+  (rng) => {
+    const start = randInt(rng, 50, 200);
+    const rate = randInt(rng, 2, 8);
+    const t = randInt(rng, 3, 6);
+    const final = Math.round(start * Math.pow(1 + rate / 100, t));
+    return {
+      id: `wp-m3-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "medium",
+      question: `A population of ${start} grows at ${rate}% per year. What's the population after ${t} years? (round to nearest whole)`,
+      answer: final,
+      choices: generateChoices(rng, final, 4, 0.1),
+      explanation: `P(t) = P₀ × (1 + r)^t = ${start} × (1.${rate})^${t} ≈ ${final}.`,
+      xp: 15,
+      hint: `Exponential growth: P(t) = P₀(1 + r)^t.`,
+    };
+  },
+  (rng) => {
+    const length = randInt(rng, 8, 20);
+    const width = randInt(rng, 5, 12);
+    const fenceCost = randInt(rng, 5, 20);
+    const perimeter = 2 * (length + width);
+    const totalCost = perimeter * fenceCost;
+    return {
+      id: `wp-m4-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "arithmetic",
+      difficulty: "medium",
+      question: `A ${length}×${width} garden needs fencing on all four sides. Fencing costs $${fenceCost} per meter. What's the total cost?`,
+      answer: totalCost,
+      choices: generateChoices(rng, totalCost, 4, 0.1),
+      explanation: `Perimeter = 2(${length} + ${width}) = ${perimeter} m. Total = ${perimeter} × $${fenceCost} = $${totalCost}.`,
+      xp: 15,
+      hint: `Find the perimeter, then multiply by cost per meter.`,
+    };
+  },
+];
+
+const wordProblemsHard: Generator[] = [
+  (rng) => {
+    const adult = randInt(rng, 12, 25);
+    const child = randInt(rng, adult * 2, adult * 4);
+    const adultPrice = randInt(rng, 15, 30);
+    const childPrice = Math.round(adultPrice * 0.5);
+    const total = adult * adultPrice + child * childPrice;
+    return {
+      id: `wp-h1-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "algebra",
+      difficulty: "hard",
+      question: `${adult} adults and ${child} children go to a show. Adult tickets cost $${adultPrice}, child tickets $${childPrice}. What's the total?`,
+      answer: total,
+      choices: generateChoices(rng, total, 4, 0.1),
+      explanation: `Adults: ${adult} × $${adultPrice} = $${adult * adultPrice}. Children: ${child} × $${childPrice} = $${child * childPrice}. Total: $${total}.`,
+      xp: 20,
+      hint: `Calculate adult total + child total separately.`,
+    };
+  },
+  (rng) => {
+    const length = randInt(rng, 10, 25);
+    const width = randInt(rng, 6, 15);
+    const depth = randInt(rng, 2, 5);
+    const flowRate = randInt(rng, 5, 20);
+    const volume = length * width * depth;
+    const fillTime = Math.round(volume / flowRate);
+    return {
+      id: `wp-h2-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "algebra",
+      difficulty: "hard",
+      question: `A pool is ${length}×${width}×${depth} meters. Water flows in at ${flowRate} m³/min. How many minutes to fill? (round to nearest whole)`,
+      answer: fillTime,
+      choices: generateChoices(rng, fillTime, 4, 0.1),
+      explanation: `Volume = ${length} × ${width} × ${depth} = ${volume} m³. Time = ${volume} ÷ ${flowRate} = ${fillTime} minutes.`,
+      xp: 20,
+      hint: `Volume = length × width × depth. Then divide by flow rate.`,
+    };
+  },
+];
+
 const generatorsByTopic: Record<string, Record<string, Generator[]>> = {
   algebra: { easy: algebraEasy, medium: algebraMedium, hard: algebraHard },
   arithmetic: { easy: arithmeticEasy, medium: arithmeticMedium, hard: arithmeticHard },
@@ -681,6 +860,7 @@ const generatorsByTopic: Record<string, Record<string, Generator[]>> = {
   statistics: { easy: statisticsEasy, medium: statisticsMedium, hard: statisticsHard },
   calculus: { easy: calculusEasy, medium: calculusMedium, hard: calculusHard },
   trigonometry: { easy: trigonometryEasy, medium: trigonometryMedium, hard: trigonometryHard },
+  "word-problems": { easy: wordProblemsEasy, medium: wordProblemsMedium, hard: wordProblemsHard },
 };
 
 export type GenerationOptions = {

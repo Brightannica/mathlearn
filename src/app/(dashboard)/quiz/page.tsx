@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { generateQuiz, GeneratedProblem } from "@/lib/problem-generator";
 import { recordAttempt, getPerformance } from "@/lib/adaptive-difficulty";
 import { markProblemSolved, getState, subscribe } from "@/lib/local-state";
+import { SolutionSteps } from "@/components/solution-steps";
 
 type QuizConfig = {
   topic: string | "mixed";
@@ -33,6 +34,8 @@ export default function QuizPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
   const [answers, setAnswers] = useState<{ questionId: string; selected: string; correct: boolean; time: number }[]>([]);
   const [startTime, setStartTime] = useState(0);
   const [tick, setTick] = useState(0);
@@ -70,6 +73,7 @@ export default function QuizPage() {
     const isCorrect = String(answer) === String(q.answer);
     setSelectedAnswer(answer);
     setShowFeedback(true);
+    setShowHint(false);
     recordAttempt(q.topic, q.difficulty, isCorrect);
     setAnswers((prev) => [...prev, { questionId: q.id, selected: answer, correct: isCorrect, time: Date.now() - startTime }]);
     if (isCorrect) {
@@ -121,6 +125,7 @@ export default function QuizPage() {
                 { id: "statistics", label: "Statistics", icon: "σ" },
                 { id: "calculus", label: "Calculus", icon: "∫" },
                 { id: "trigonometry", label: "Trigonometry", icon: "∠" },
+                { id: "word-problems", label: "Word Problems", icon: "📖" },
               ].map((t) => (
                 <button
                   key={t.id}
@@ -258,6 +263,26 @@ export default function QuizPage() {
         <div className="p-6 sm:p-8">
           <p className="text-lg text-zinc-100 leading-relaxed mb-6">{q.question}</p>
 
+          {!showFeedback && (
+            <div className="flex items-center gap-2 mb-4">
+              <Button
+                onClick={() => setShowHint(true)}
+                variant="ghost"
+                size="sm"
+                className="text-zinc-500 hover:text-amber-400"
+              >
+                <Lightbulb className="h-3.5 w-3.5 mr-1" /> show hint
+              </Button>
+            </div>
+          )}
+
+          {showHint && !showFeedback && (
+            <div className="p-3 border border-amber-500/30 bg-amber-500/5 text-sm text-amber-200 mb-4 flex items-start gap-2">
+              <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 text-amber-400" />
+              <span>{q.hint}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {q.choices.map((choice, i) => {
               const isSelected = selectedAnswer === choice;
@@ -315,6 +340,17 @@ export default function QuizPage() {
                 </div>
                 {q.explanation}
               </div>
+              {!showSolution ? (
+                <Button
+                  onClick={() => setShowSolution(true)}
+                  variant="outline"
+                  className="w-full border-zinc-800 hover:border-zinc-700"
+                >
+                  <ChevronRight className="h-3.5 w-3.5 mr-1" /> show step-by-step solution
+                </Button>
+              ) : (
+                <SolutionSteps problem={q} onClose={() => setShowSolution(false)} />
+              )}
               <Button onClick={handleNext} className="w-full bg-[#c4f000] text-black hover:bg-[#b3d800] font-semibold">
                 {currentIdx + 1 >= questions.length ? "see results" : "next question"}
                 <ArrowRight className="ml-2 h-4 w-4" />

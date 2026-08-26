@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { generateDailyDrill, GeneratedProblem } from "@/lib/problem-generator";
 import { recordAttempt } from "@/lib/adaptive-difficulty";
 import { markProblemSolved, getState, subscribe } from "@/lib/local-state";
+import { SolutionSteps } from "@/components/solution-steps";
 
 const DAILY_KEY = "mathitout-daily-done-v1";
 
@@ -22,6 +23,8 @@ export default function DailyDrillPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [showSolution, setShowSolution] = useState(false);
   const [answers, setAnswers] = useState<{ questionId: string; correct: boolean }[]>([]);
   const [phase, setPhase] = useState<"intro" | "playing" | "results">("intro");
   const [completed, setCompleted] = useState(false);
@@ -226,6 +229,24 @@ export default function DailyDrillPage() {
         <div className="p-6 sm:p-8">
           <p className="text-lg text-zinc-100 leading-relaxed mb-6">{q.question}</p>
 
+          {!showFeedback && (
+            <div className="mb-4">
+              <button
+                onClick={() => setShowHint(true)}
+                className="text-xs text-zinc-500 hover:text-amber-400 flex items-center gap-1.5"
+              >
+                <Lightbulb className="h-3 w-3" /> show hint
+              </button>
+            </div>
+          )}
+
+          {showHint && !showFeedback && (
+            <div className="p-3 border border-amber-500/30 bg-amber-500/5 text-sm text-amber-200 mb-4 flex items-start gap-2">
+              <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 text-amber-400" />
+              <span>{q.hint}</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {q.choices.map((choice, i) => {
               const isSelected = selectedAnswer === choice;
@@ -278,6 +299,17 @@ export default function DailyDrillPage() {
               <div className="p-3 border border-zinc-800 bg-[#0a0a0a] text-sm text-zinc-400">
                 {q.explanation}
               </div>
+              {!showSolution ? (
+                <Button
+                  onClick={() => setShowSolution(true)}
+                  variant="outline"
+                  className="w-full border-zinc-800"
+                >
+                  show step-by-step solution
+                </Button>
+              ) : (
+                <SolutionSteps problem={q} onClose={() => setShowSolution(false)} />
+              )}
               <Button onClick={handleNext} className="w-full bg-[#c4f000] text-black hover:bg-[#b3d800] font-semibold">
                 {currentIdx + 1 >= questions.length ? "finish" : "next"}
                 <ArrowRight className="ml-2 h-4 w-4" />
