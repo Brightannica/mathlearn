@@ -2,8 +2,8 @@ name: Keep Alive
 
 on:
   schedule:
-    # Runs every 10 minutes to prevent Render free-tier cold start
-    - cron: "*/10 * * * *"
+    # Runs every 5 minutes to prevent Render free-tier cold start
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -12,4 +12,15 @@ jobs:
     steps:
       - name: Ping mathitout health endpoint
         run: |
-          curl -sf -m 30 https://mathlearn-wuda.onrender.com/api/health || echo "ping failed but service will warm up on next real visit"
+          for i in 1 2 3; do
+            echo "ping attempt $i..."
+            code=$(curl -sf -m 50 -o /dev/null -w "%{http_code}" https://mathlearn-wuda.onrender.com/api/health || echo "000")
+            echo "status: $code"
+            if [ "$code" = "200" ]; then
+              echo "ok"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "all attempts failed, but the next scheduled run will retry"
+          exit 0
