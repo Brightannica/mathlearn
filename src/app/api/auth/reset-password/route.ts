@@ -1,30 +1,25 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getRateLimiter, getClientIp } from "@/lib/rate-limit";
 
-const rateLimitMap = new Map<string, { count: number; lastReset: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  
-  if (!entry || now - entry.lastReset > 60000) {
-    rateLimitMap.set(ip, { count: 1, lastReset: now });
-    return true;
-  }
-  
-  entry.count += 1;
-  if (entry.count > 3) {
-    return false;
-  }
-  return true;
-}
+const limiter = getRateLimiter("reset-password", 60_000, 3);
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
-    
-    if (!checkRateLimit(ip)) {
-      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+    const ip = getClientIp(request);
+    const result = limiter.check(`reset-${ip}`);
+    if (!result.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(Math.floor(result.resetAt / 1000)),
+            "Retry-After": String(Math.ceil((result.resetAt - Date.now()) / 1000)),
+          },
+        }
+      );
     }
 
     const body = await request.json();

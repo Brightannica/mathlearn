@@ -23,12 +23,16 @@ export async function GET(request: Request) {
   try {
     if (type === "exercises" && topicId) {
       const exercises = await getExercisesByTopic(topicId);
-      return NextResponse.json(exercises);
+      return NextResponse.json(exercises, {
+        headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+      });
     }
 
     if (topicId) {
       const lessons = await getLessonsByTopic(topicId);
-      return NextResponse.json(lessons);
+      return NextResponse.json(lessons, {
+        headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+      });
     }
 
     return NextResponse.json({ error: "topicId is required" }, { status: 400 });

@@ -28,11 +28,19 @@ export async function GET(request: Request) {
 
     if (type === "exercises" && topicId) {
       const exercises = await getExercisesByTopic(topicId);
-      return NextResponse.json(exercises);
+      return NextResponse.json(exercises, {
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        },
+      });
     }
 
     const topics = await getTopics();
-    return NextResponse.json(topics);
+    return NextResponse.json(topics, {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
+    });
   } catch (error) {
     console.error("API error:", error);
     if (error instanceof z.ZodError) {

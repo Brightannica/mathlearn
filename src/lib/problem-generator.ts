@@ -853,6 +853,116 @@ const wordProblemsHard: Generator[] = [
   },
 ];
 
+// === COMBINATORICS & SEQUENCES ===
+const combinatoricsEasy: Generator[] = [
+  (rng) => {
+    const n = randInt(rng, 4, 10);
+    const r = randInt(rng, 2, Math.min(n, 4));
+    let perm = 1;
+    for (let i = 0; i < r; i++) perm *= (n - i);
+    return {
+      id: `comb-e1-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "combinatorics",
+      difficulty: "easy",
+      question: `How many ways can you arrange ${r} items from ${n} distinct items? (permutations, no repetition)`,
+      answer: perm,
+      choices: generateChoices(rng, perm, 4, 0.3),
+      explanation: `${n}P${r} = ${n}! / (${n - r})! = ${perm}.`,
+      xp: 10,
+      hint: `${n}P${r} = ${n} × (${n - 1}) × ... × (${n - r + 1}).`,
+    };
+  },
+  (rng) => {
+    const n = randInt(rng, 5, 10);
+    const r = randInt(rng, 2, 4);
+    const fact = (k: number): number => k <= 1 ? 1 : k * fact(k - 1);
+    const comb = fact(n) / (fact(r) * fact(n - r));
+    return {
+      id: `comb-e2-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "combinatorics",
+      difficulty: "easy",
+      question: `From ${n} students, how many ways to choose a committee of ${r}?`,
+      answer: Math.round(comb),
+      choices: generateChoices(rng, Math.round(comb), 4, 0.3),
+      explanation: `C(${n}, ${r}) = ${n}! / (${r}! × (${n - r})!) = ${Math.round(comb)}.`,
+      xp: 10,
+      hint: `Use the combination formula: C(n, r) = n! / (r! × (n−r)!).`,
+    };
+  },
+];
+
+const sequencesEasy: Generator[] = [
+  (rng) => {
+    const a1 = randInt(rng, 2, 10);
+    const d = randInt(rng, 1, 8);
+    const n = randInt(rng, 10, 20);
+    const answer = a1 + (n - 1) * d;
+    return {
+      id: `seq-e1-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "sequences",
+      difficulty: "easy",
+      question: `Arithmetic sequence: first term ${a1}, common difference ${d}. Find the ${n}th term.`,
+      answer,
+      choices: generateChoices(rng, answer, 4, 0.2),
+      explanation: `a_n = a_1 + (n-1)d = ${a1} + (${n - 1})(${d}) = ${a1} + ${(n - 1) * d} = ${answer}.`,
+      xp: 10,
+      hint: `a_n = a_1 + (n-1)d.`,
+    };
+  },
+  (rng) => {
+    const a1 = randInt(rng, 2, 5);
+    const r = randInt(rng, 2, 4);
+    const n = randInt(rng, 5, 8);
+    const answer = a1 * Math.pow(r, n - 1);
+    return {
+      id: `seq-e2-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "sequences",
+      difficulty: "easy",
+      question: `Geometric sequence: first term ${a1}, common ratio ${r}. Find the ${n}th term.`,
+      answer,
+      choices: generateChoices(rng, answer, 4, 0.2),
+      explanation: `a_n = a_1 × r^(n-1) = ${a1} × ${r}^(${n - 1}) = ${a1} × ${Math.pow(r, n - 1)} = ${answer}.`,
+      xp: 10,
+      hint: `a_n = a_1 × r^(n-1).`,
+    };
+  },
+];
+
+const sequencesMedium: Generator[] = [
+  (rng) => {
+    const a1 = randInt(rng, 1, 5);
+    const r = randInt(rng, 2, 5);
+    const n = randInt(rng, 5, 8);
+    const sum = a1 * (Math.pow(r, n) - 1) / (r - 1);
+    return {
+      id: `seq-m1-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "sequences",
+      difficulty: "medium",
+      question: `Sum of first ${n} terms of geometric series: first term ${a1}, ratio ${r}.`,
+      answer: Math.round(sum),
+      choices: generateChoices(rng, Math.round(sum), 4, 0.2),
+      explanation: `S_n = a_1(r^n - 1)/(r-1) = ${a1}(${Math.pow(r, n)} - 1)/(${r - 1}) = ${Math.round(sum)}.`,
+      xp: 15,
+      hint: `S_n = a_1(r^n - 1)/(r-1).`,
+    };
+  },
+  (rng) => {
+    const n = randInt(rng, 20, 50);
+    const answer = n * (n + 1) / 2;
+    return {
+      id: `seq-m2-${Date.now()}-${Math.floor(rng() * 1e6)}`,
+      topic: "sequences",
+      difficulty: "medium",
+      question: `Sum of the first ${n} positive integers?`,
+      answer,
+      choices: generateChoices(rng, answer, 4, 0.1),
+      explanation: `S = n(n+1)/2 = ${n}(${n + 1})/2 = ${answer}.`,
+      xp: 10,
+      hint: `Gauss's formula: S = n(n+1)/2.`,
+    };
+  },
+];
+
 const generatorsByTopic: Record<string, Record<string, Generator[]>> = {
   algebra: { easy: algebraEasy, medium: algebraMedium, hard: algebraHard },
   arithmetic: { easy: arithmeticEasy, medium: arithmeticMedium, hard: arithmeticHard },
@@ -861,6 +971,8 @@ const generatorsByTopic: Record<string, Record<string, Generator[]>> = {
   calculus: { easy: calculusEasy, medium: calculusMedium, hard: calculusHard },
   trigonometry: { easy: trigonometryEasy, medium: trigonometryMedium, hard: trigonometryHard },
   "word-problems": { easy: wordProblemsEasy, medium: wordProblemsMedium, hard: wordProblemsHard },
+  combinatorics: { easy: combinatoricsEasy, medium: [], hard: [] },
+  sequences: { easy: sequencesEasy, medium: sequencesMedium, hard: [] },
 };
 
 export type GenerationOptions = {
