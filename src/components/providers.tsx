@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { KeepAlive } from "@/components/keep-alive";
 import { ColdStartWatchdog } from "@/components/cold-start-watchdog";
+import { CommandPalette } from "@/components/command-palette";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <RealtimeProvider>
             <KeepAlive />
             <ColdStartWatchdog />
+            <CommandPalette />
             {children}
           </RealtimeProvider>
           <Toaster />

@@ -9,6 +9,7 @@ import { Calculator, Sigma, Grid3x3, Ruler, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GraphingCalculator } from "@/components/graphing-calculator";
 import { MatrixSolver } from "@/components/matrix-solver";
+import { StudyMusic } from "@/components/study-music";
 
 export function ScientificCalculator() {
   const [display, setDisplay] = useState("0");
@@ -204,6 +205,7 @@ export default function ToolsPage() {
     { id: "matrix", name: "Matrix Solver", icon: Grid3x3, desc: "Solve Ax = b, determinant" },
     { id: "scientific", name: "Scientific", icon: Calculator, desc: "DEG/RAD calculator" },
     { id: "converter", name: "Unit Converter", icon: Ruler, desc: "Length, mass, time…" },
+    { id: "music", name: "Study Music", icon: Sigma, desc: "Ambient focus sounds" },
   ];
   const [active, setActive] = useState("graphing");
 
@@ -247,6 +249,11 @@ export default function ToolsPage() {
         {active === "matrix" && <MatrixSolver />}
         {active === "scientific" && <ScientificCalculator />}
         {active === "converter" && <UnitConverter />}
+        {active === "music" && (
+          <div className="max-w-md">
+            <StudyMusic />
+          </div>
+        )}
       </div>
     </div>
   );

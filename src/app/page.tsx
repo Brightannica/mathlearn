@@ -197,9 +197,9 @@ export default function LandingPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-zinc-800/60 border border-zinc-800/60">
                 {[
-                  { k: "courses", v: "5" },
-                  { k: "lessons", v: "14" },
-                  { k: "problems", v: "2,400+" },
+                  { k: "courses", v: "9" },
+                  { k: "lessons", v: "30+" },
+                  { k: "problems", v: "60+" },
                   { k: "price", v: "$0" },
                 ].map((s) => (
                   <div key={s.k} className="bg-[#0a0a0a] p-4">

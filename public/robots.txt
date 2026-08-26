@@ -1,4 +1,12 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /learn/
+Disallow: /practice
+Disallow: /solve/
+Disallow: /tools
+Disallow: /visualizations
 
-Sitemap: https://mathlearn.app/sitemap.xml
+Sitemap: https://mathitout.app/sitemap.xml
