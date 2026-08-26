@@ -46,6 +46,8 @@ import { NotificationsDropdown } from "@/components/notifications-dropdown";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Daily Drill", href: "/daily-drill", icon: Flame },
+  { name: "Quiz", href: "/quiz", icon: Brain },
   { name: "Courses", href: "/learn", icon: BookOpen },
   { name: "Solve", href: "/solve", icon: Code2 },
   { name: "Review (SRS)", href: "/review", icon: Brain },
