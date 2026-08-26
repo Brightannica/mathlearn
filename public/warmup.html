@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>mathitout — warming up</title>
+  <meta http-equiv="refresh" content="15" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #fafafa;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .wrap {
+      max-width: 28rem;
+      width: 100%;
+      text-align: center;
+      space-y: 1.5rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #fbbf24;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #fbbf24;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 1rem 0 0.5rem;
+    }
+    p {
+      color: #71717a;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      border: 1px solid #27272a;
+      background: #0d0d0d;
+      padding: 1rem;
+      text-align: left;
+      font-size: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-title {
+      color: #52525b;
+      margin-bottom: 0.5rem;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      margin: 0.25rem 0;
+    }
+    .row span:first-child { color: #a1a1aa; }
+    .row span:last-child { color: #c4f000; }
+    .bar {
+      height: 4px;
+      background: #18181b;
+      margin-top: 0.75rem;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #c4f000;
+      animation: grow 3s ease-in-out infinite alternate;
+    }
+    @keyframes grow {
+      0% { width: 10%; }
+      100% { width: 80%; }
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border: 1px solid #27272a;
+      color: #fafafa;
+      text-decoration: none;
+      font-size: 0.75rem;
+      transition: all 0.15s;
+    }
+    .btn:hover {
+      border-color: #c4f000;
+      color: #c4f000;
+    }
+    .tip {
+      color: #3f3f46;
+      font-size: 10px;
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="badge"><div class="dot"></div>// warming up</div>
+    <h1>spinning up the service</h1>
+    <p>
+      free-tier render puts the server to sleep after 15 minutes idle.
+      the first visit wakes it up — usually 20–50 seconds.
+      this page will auto-retry.
+    </p>
+    <div class="card">
+      <div class="card-title">// status</div>
+      <div class="row"><span>service</span><span>render free</span></div>
+      <div class="row"><span>spin-down</span><span>15 min idle</span></div>
+      <div class="row"><span>auto-retry</span><span>every 15s</span></div>
+      <div class="bar"><div class="bar-fill"></div></div>
+    </div>
+    <a class="btn" href="https://mathlearn-wuda.onrender.com">↻ retry now</a>
+    <div class="tip">
+      keep this tab open to avoid cold starts entirely
+    </div>
+  </div>
+</body>
+</html>
