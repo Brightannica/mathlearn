@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>mathitout</title>
+  <title>mathitout — figure it out, properly</title>
   <meta name="description" content="A practice-first math app. Pick a topic, get a problem, write your working, get it checked." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23c4f000'/%3E%3Ctext x='50' y='68' font-size='72' font-weight='bold' text-anchor='middle' font-family='monospace' fill='%230a0a0a'%3Em%3C/text%3E%3C/svg%3E" />
   <meta name="theme-color" content="#0a0a0a" />
+  <meta property="og:title" content="mathitout — figure it out, properly" />
+  <meta property="og:description" content="A practice-first math app. Pick a topic, get a problem, write your working, get it checked." />
+  <meta property="og:type" content="website" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; }
@@ -18,29 +21,106 @@
       display: flex;
       flex-direction: column;
       padding: 1.5rem;
+      overflow-x: hidden;
     }
     .wrap {
-      max-width: 36rem;
+      max-width: 64rem;
       width: 100%;
       margin: auto;
-      text-align: center;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #27272a;
+      margin-bottom: 2rem;
     }
     .logo {
-      width: 4rem; height: 4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+    }
+    .logo-mark {
+      width: 2rem; height: 2rem;
       background: #c4f000;
       display: inline-flex; align-items: center; justify-content: center;
-      margin-bottom: 1.5rem;
-      font-size: 1.875rem;
-      font-weight: bold;
       color: #0a0a0a;
+      font-weight: bold;
     }
-    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-    p { color: #71717a; font-size: 0.875rem; line-height: 1.6; margin-bottom: 1.5rem; }
-    .status {
+    .logo-text { font-weight: 600; font-size: 1rem; }
+    .logo-tag { color: #52525b; font-size: 0.75rem; margin-left: 0.5rem; }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.625rem;
+      color: #71717a;
+    }
+    .dot {
+      width: 0.5rem; height: 0.5rem;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .dot.green { background: #4ade80; }
+    .dot.amber { background: #fbbf24; }
+    .dot.red { background: #ef4444; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .hero {
+      text-align: center;
+      padding: 3rem 0;
+    }
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 0.95;
+      margin-bottom: 1.5rem;
+    }
+    h1 .dim { color: #52525b; }
+    h1 .accent { color: #c4f000; }
+    .tagline {
+      color: #a1a1aa;
+      font-size: 1.125rem;
+      line-height: 1.6;
+      max-width: 32rem;
+      margin: 0 auto 2.5rem;
+    }
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.875rem 1.75rem;
+      font-family: inherit; font-size: 0.9375rem; font-weight: 600;
+      border: none; cursor: pointer; text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: #c4f000; color: #0a0a0a; }
+    .btn-primary:hover { background: #b3d800; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: transparent; color: #fafafa; border: 1px solid #27272a; }
+    .btn-secondary:hover { border-color: #c4f000; color: #c4f000; }
+    .loader {
+      width: 0.875rem; height: 0.875rem;
+      border: 2px solid #27272a;
+      border-top-color: #c4f000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status-card {
+      max-width: 32rem;
+      margin: 0 auto 3rem;
       border: 1px solid #27272a;
       background: #0d0d0d;
       padding: 1.25rem;
-      margin-bottom: 1.5rem;
       text-align: left;
     }
     .status-title {
@@ -53,115 +133,242 @@
     .row { display: flex; justify-content: space-between; align-items: center; margin: 0.375rem 0; font-size: 0.8125rem; }
     .row .k { color: #a1a1aa; }
     .row .v { color: #c4f000; font-family: monospace; }
-    .bar {
-      height: 4px;
-      background: #18181b;
-      margin-top: 0.75rem;
-      overflow: hidden;
+    .bar { height: 4px; background: #18181b; margin-top: 0.75rem; overflow: hidden; }
+    .bar-fill { height: 100%; background: #c4f000; transition: width 0.5s ease; }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1px;
+      background: #27272a;
+      border: 1px solid #27272a;
+      margin: 3rem 0;
     }
-    .bar-fill {
-      height: 100%;
-      background: #c4f000;
-      transition: width 0.5s ease;
+    .feature {
+      background: #0d0d0d;
+      padding: 1.5rem;
+      transition: background 0.15s;
     }
-    .actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      font-family: inherit; font-size: 0.875rem; font-weight: 600;
-      border: none; cursor: pointer; text-decoration: none;
-      transition: all 0.15s;
+    .feature:hover { background: #111; }
+    .feature-icon {
+      color: #c4f000;
+      margin-bottom: 0.75rem;
     }
-    .btn-primary { background: #c4f000; color: #0a0a0a; }
-    .btn-primary:hover { background: #b3d800; }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-secondary { background: transparent; color: #fafafa; border: 1px solid #27272a; }
-    .btn-secondary:hover { border-color: #c4f000; color: #c4f000; }
-    .dot {
-      display: inline-block; width: 0.5rem; height: 0.5rem;
-      border-radius: 50%; margin-right: 0.5rem;
-      animation: pulse 1.5s ease-in-out infinite;
+    .feature-name {
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
     }
-    .dot.green { background: #4ade80; }
-    .dot.amber { background: #fbbf24; }
-    .dot.red { background: #ef4444; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .loader {
-      width: 0.875rem; height: 0.875rem;
-      border: 2px solid #27272a;
-      border-top-color: #c4f000;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 0.5rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .info {
-      border: 1px solid #1e3a5f;
-      background: #0a1628;
-      padding: 0.75rem 1rem;
-      margin-bottom: 1.5rem;
+    .feature-desc {
       font-size: 0.75rem;
-      color: #93c5fd;
+      color: #71717a;
+      line-height: 1.5;
+    }
+    .demo-section {
+      margin: 3rem 0;
+    }
+    .demo-card {
+      border: 1px solid #27272a;
+      background: #0a0a0a;
+      padding: 1rem;
+      max-width: 36rem;
+      margin: 0 auto;
+    }
+    .demo-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #27272a;
+      margin-bottom: 0.75rem;
+      font-size: 0.75rem;
+      color: #71717a;
+    }
+    .demo-header .dot { animation: none; }
+    .demo-header .dot.r { background: #ef4444; }
+    .demo-header .dot.y { background: #fbbf24; }
+    .demo-header .dot.g { background: #4ade80; }
+    .demo-problem {
+      font-size: 1rem;
+      color: #fafafa;
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+    .demo-solution {
+      font-family: monospace;
+      font-size: 0.875rem;
+      color: #d4d4d8;
+      background: #0a0a0a;
+      border-left: 2px solid #c4f000;
+      padding: 0.75rem 1rem;
+      margin: 0.5rem 0;
+    }
+    .demo-result {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      background: #c4f00010;
+      border: 1px solid #c4f00030;
+      color: #c4f000;
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1px;
+      background: #27272a;
+      border: 1px solid #27272a;
+      margin: 3rem 0;
+    }
+    .stat {
+      background: #0d0d0d;
+      padding: 1.25rem;
       text-align: left;
     }
-    .info strong { color: #60a5fa; }
-    .footer { color: #3f3f46; font-size: 0.625rem; margin-top: 2rem; }
+    .stat-label {
+      font-size: 0.625rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #52525b;
+      margin-bottom: 0.5rem;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #c4f000;
+    }
+    .footer {
+      text-align: center;
+      color: #3f3f46;
+      font-size: 0.625rem;
+      padding-top: 3rem;
+      border-top: 1px solid #27272a;
+      margin-top: 3rem;
+    }
+    .footer a { color: #71717a; text-decoration: none; }
+    .footer a:hover { color: #c4f000; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="logo">m</div>
-    <h1>mathitout</h1>
-    <p>a practice-first math app. pick a topic. get a problem. write your working. get it checked.</p>
-
-    <div class="info">
-      <strong>// bookmark this URL</strong><br/>
-      this static page never goes to sleep. it checks the main app and forwards you when it's ready. no more "this page couldn't load" errors.
+    <div class="topbar">
+      <div class="logo">
+        <div class="logo-mark">m</div>
+        <span class="logo-text">mathitout</span>
+        <span class="logo-tag">// figure it out, properly</span>
+      </div>
+      <div class="status-bar">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">checking...</span>
+      </div>
     </div>
 
-    <div class="status">
-      <div class="status-title">// main app status</div>
-      <div class="row">
-        <span class="k">endpoint</span>
-        <span class="v" id="endpoint">checking...</span>
+    <section class="hero">
+      <h1>
+        <span class="dim">stop watching</span><br/>
+        math tutorials.<br/>
+        <span class="accent">start solving.</span>
+      </h1>
+      <p class="tagline">
+        a practice-first math app. pick a topic. get a problem. write your working. get it checked.
+        no streaks-as-a-substitute-for-actual-learning. no confetti when you guess right.
+        just problems, and you getting better at them.
+      </p>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="enterBtn" onclick="enter()" disabled>
+          <span class="loader" id="btnLoader"></span>
+          <span id="btnText">checking...</span>
+        </button>
+        <a class="btn btn-secondary" href="#features">learn more ↓</a>
       </div>
-      <div class="row">
-        <span class="k">status</span>
-        <span class="v" id="status">
-          <span class="loader"></span>checking
-        </span>
+
+      <div class="status-card">
+        <div class="status-title">// app status</div>
+        <div class="row"><span class="k">endpoint</span><span class="v" id="endpoint">mathlearn-wuda.onrender.com</span></div>
+        <div class="row"><span class="k">status</span><span class="v" id="statusDetail">waking up...</span></div>
+        <div class="row"><span class="k">response</span><span class="v" id="responseTime">—</span></div>
+        <div class="row"><span class="k">attempt</span><span class="v" id="attempt">0</span></div>
+        <div class="bar"><div class="bar-fill" id="bar" style="width: 0%"></div></div>
       </div>
-      <div class="row">
-        <span class="k">response</span>
-        <span class="v" id="response">—</span>
+    </section>
+
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-label">courses</div>
+        <div class="stat-value">9</div>
       </div>
-      <div class="row">
-        <span class="k">attempt</span>
-        <span class="v" id="attempt">0</span>
+      <div class="stat">
+        <div class="stat-label">lessons</div>
+        <div class="stat-value">30+</div>
       </div>
-      <div class="bar"><div class="bar-fill" id="bar" style="width: 0%"></div></div>
+      <div class="stat">
+        <div class="stat-label">problems</div>
+        <div class="stat-value">70+</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">price</div>
+        <div class="stat-value">$0</div>
+      </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-primary" id="enterBtn" onclick="enter()" disabled>
-        <span>→</span> enter app
-      </button>
-      <button class="btn btn-secondary" onclick="check()">
-        <span>↻</span> retry
-      </button>
+    <div class="features" id="features">
+      <div class="feature">
+        <div class="feature-icon">▤</div>
+        <div class="feature-name">structured courses</div>
+        <div class="feature-desc">K through AP calc. pre-alg, algebra I/II, geometry, trig, stats. 9 courses, 30+ lessons.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⌨</div>
+        <div class="feature-name">coding challenges</div>
+        <div class="feature-desc">70+ problems with in-browser runner. write actual JavaScript, pass real test cases, earn XP.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⟳</div>
+        <div class="feature-name">spaced repetition</div>
+        <div class="feature-desc">FSRS-powered review. problems resurface at the right time. long-term memory, not cramming.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⊞</div>
+        <div class="feature-name">formula sheets</div>
+        <div class="feature-desc">quick reference for every course. click to copy. searchable. always one Cmd+K away.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">♟</div>
+        <div class="feature-name">group study</div>
+        <div class="feature-desc">real-time rooms. shared code editor. solve problems together.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-name">adaptive difficulty</div>
+        <div class="feature-desc">the system learns what you're weak at. drills it. skips what you know.</div>
+      </div>
     </div>
 
-    <p class="footer">
-      this page runs on render's free static hosting — it never sleeps.<br/>
-      the main app behind it does, but we keep it warm for you.
-    </p>
+    <div class="demo-section">
+      <div class="demo-card">
+        <div class="demo-header">
+          <span class="dot g"></span>
+          <span>session.k — live demo</span>
+          <span style="margin-left: auto; color: #c4f000;">// +15 XP</span>
+        </div>
+        <div class="demo-problem">Solve for x: <strong>3(x + 2) − 4 = 2x + 7</strong></div>
+        <div class="demo-solution">3x + 6 − 4 = 2x + 7<br/>3x + 2 = 2x + 7<br/>x = <span style="color: #c4f000;">5</span></div>
+        <div class="demo-result">✓ correct · streak: 7 days</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>this page is served from render's free static hosting. it never sleeps.</p>
+      <p style="margin-top: 0.25rem;">
+        <a href="https://mathlearn-wuda.onrender.com">main app →</a>
+        ·
+        <a href="https://github.com/Brightannica/mathlearn">github</a>
+      </p>
+    </div>
   </div>
 
   <script>
-    const APP_HOST = "mathlearn-wuda.onrender.com";
-    const APP_URL = "https://" + APP_HOST;
+    const APP_URL = "https://mathlearn-wuda.onrender.com";
     const HEALTH_URL = APP_URL + "/api/health";
     const RETRY_DELAYS = [0, 2000, 3000, 4000, 5000, 7000, 10000, 15000];
     const TIMEOUT_MS = 90000;
@@ -169,29 +376,39 @@
     let attempts = 0;
     let checking = false;
     let successTimer = null;
+    let typingTimer = null;
 
     function $(id) { return document.getElementById(id); }
 
-    function setStatus(state, html) {
-      const el = $("status");
-      el.innerHTML = html;
-      if (state === "ok") el.style.color = "#4ade80";
-      else if (state === "warming") el.style.color = "#fbbf24";
-      else el.style.color = "#ef4444";
+    function setStatus(state, text) {
+      const dot = $("statusDot");
+      dot.className = "dot " + (state === "ok" ? "green" : state === "warming" ? "amber" : "red");
+      $("statusText").textContent = text;
+      const detail = $("statusDetail");
+      detail.textContent = text;
     }
 
-    function setEndpoint(text) { $("endpoint").textContent = text; }
-    function setResponse(text) { $("response").textContent = text; }
     function setBar(pct) { $("bar").style.width = pct + "%"; }
+    function setResponse(text) { $("responseTime").textContent = text; }
+    function setEndpoint(text) { $("endpoint").textContent = text; }
+
+    function enableEnter() {
+      const btn = $("enterBtn");
+      btn.disabled = false;
+      $("btnLoader").style.display = "none";
+      $("btnText").textContent = "→ enter app";
+    }
 
     async function check() {
       if (checking) return;
       checking = true;
       attempts++;
       $("attempt").textContent = String(attempts);
-      setEndpoint(APP_HOST);
-      setStatus("warming", '<span class="dot amber"></span>waking up...');
+      setEndpoint(APP_URL.replace("https://", ""));
+      setStatus("warming", "waking up...");
       setResponse("—");
+      $("enterBtn").disabled = true;
+      $("btnText").textContent = "waking up...";
 
       const start = Date.now();
       try {
@@ -206,21 +423,21 @@
         const elapsed = Date.now() - start;
 
         if (res.ok) {
-          setStatus("ok", '<span class="dot green"></span>ready');
+          setStatus("ok", "ready");
           setResponse(elapsed + "ms");
           setBar(100);
-          $("enterBtn").disabled = false;
+          enableEnter();
           if (successTimer) clearTimeout(successTimer);
-          successTimer = setTimeout(() => enter(), 1500);
+          successTimer = setTimeout(() => enter(), 2000);
           return;
         }
-        setStatus("error", '<span class="dot red"></span>error ' + res.status);
+        setStatus("error", "error " + res.status);
         setResponse(elapsed + "ms");
         setBar(20);
         scheduleRetry();
       } catch (e) {
         const elapsed = Date.now() - start;
-        setStatus("warming", '<span class="dot amber"></span>cold start (' + elapsed + 'ms)');
+        setStatus("warming", "cold start (" + Math.round(elapsed / 1000) + "s)");
         setBar(Math.min(10 + attempts * 10, 85));
         scheduleRetry();
       } finally {
@@ -230,6 +447,7 @@
 
     function scheduleRetry() {
       if (successTimer) clearTimeout(successTimer);
+      $("btnText").textContent = "waking up... (" + attempts + ")";
       const next = RETRY_DELAYS[Math.min(attempts, RETRY_DELAYS.length - 1)];
       setTimeout(check, next);
     }
@@ -238,7 +456,7 @@
       window.location.href = APP_URL;
     }
 
-    // Service worker: intercept navigation requests and warm up the origin first
+    // Service worker for offline warmup detection
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
