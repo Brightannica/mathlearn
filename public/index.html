@@ -3,78 +3,91 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>mathitout — figure it out, properly</title>
+  <title>mathitout</title>
   <meta name="description" content="A practice-first math app. Pick a topic, get a problem, write your working, get it checked." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23c4f000'/%3E%3Ctext x='50' y='68' font-size='72' font-weight='bold' text-anchor='middle' font-family='monospace' fill='%230a0a0a'%3Em%3C/text%3E%3C/svg%3E" />
   <meta name="theme-color" content="#0a0a0a" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       background: #0a0a0a;
       color: #fafafa;
-      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
       padding: 1.5rem;
     }
-    .wrap { max-width: 32rem; width: 100%; text-align: center; }
+    .wrap {
+      max-width: 36rem;
+      width: 100%;
+      margin: auto;
+      text-align: center;
+    }
     .logo {
       width: 4rem; height: 4rem;
       background: #c4f000;
       display: inline-flex; align-items: center; justify-content: center;
       margin-bottom: 1.5rem;
+      font-size: 1.875rem;
+      font-weight: bold;
+      color: #0a0a0a;
     }
-    .logo span { color: #0a0a0a; font-weight: bold; font-size: 1.875rem; }
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
     p { color: #71717a; font-size: 0.875rem; line-height: 1.6; margin-bottom: 1.5rem; }
-    .card {
+    .status {
       border: 1px solid #27272a;
       background: #0d0d0d;
-      padding: 1rem;
+      padding: 1.25rem;
       margin-bottom: 1.5rem;
       text-align: left;
     }
-    .card-title {
+    .status-title {
       color: #52525b;
       font-size: 0.625rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
     }
-    .status-row { display: flex; justify-content: space-between; margin: 0.25rem 0; font-size: 0.75rem; }
-    .status-row span:first-child { color: #a1a1aa; }
-    .status-row span:last-child { color: #c4f000; font-family: monospace; }
-    .btn {
-      display: inline-block;
-      padding: 0.75rem 1.5rem;
+    .row { display: flex; justify-content: space-between; align-items: center; margin: 0.375rem 0; font-size: 0.8125rem; }
+    .row .k { color: #a1a1aa; }
+    .row .v { color: #c4f000; font-family: monospace; }
+    .bar {
+      height: 4px;
+      background: #18181b;
+      margin-top: 0.75rem;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
       background: #c4f000;
-      color: #0a0a0a;
-      text-decoration: none;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 0.875rem;
+      transition: width 0.5s ease;
     }
-    .btn:hover { background: #b3d800; }
-    .btn-secondary {
-      background: transparent;
-      color: #fafafa;
-      border: 1px solid #27272a;
-      margin-left: 0.5rem;
+    .actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      font-family: inherit; font-size: 0.875rem; font-weight: 600;
+      border: none; cursor: pointer; text-decoration: none;
+      transition: all 0.15s;
     }
-    .btn-secondary:hover { border-color: #c4f000; color: #c4f000; background: transparent; }
+    .btn-primary { background: #c4f000; color: #0a0a0a; }
+    .btn-primary:hover { background: #b3d800; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: transparent; color: #fafafa; border: 1px solid #27272a; }
+    .btn-secondary:hover { border-color: #c4f000; color: #c4f000; }
     .dot {
       display: inline-block; width: 0.5rem; height: 0.5rem;
-      border-radius: 50%; background: #c4f000; margin-right: 0.5rem;
+      border-radius: 50%; margin-right: 0.5rem;
       animation: pulse 1.5s ease-in-out infinite;
     }
+    .dot.green { background: #4ade80; }
+    .dot.amber { background: #fbbf24; }
+    .dot.red { background: #ef4444; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .loader {
-      width: 1rem; height: 1rem;
+      width: 0.875rem; height: 0.875rem;
       border: 2px solid #27272a;
       border-top-color: #c4f000;
       border-radius: 50%;
@@ -84,97 +97,153 @@
       margin-right: 0.5rem;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .result { margin-top: 1rem; padding: 0.75rem; border: 1px solid; font-size: 0.75rem; }
-    .result.ok { border-color: #c4f000; background: #c4f00008; color: #c4f000; }
-    .result.err { border-color: #ef4444; background: #ef444408; color: #ef4444; }
-    .footer { color: #52525b; font-size: 0.625rem; margin-top: 2rem; }
+    .info {
+      border: 1px solid #1e3a5f;
+      background: #0a1628;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.75rem;
+      color: #93c5fd;
+      text-align: left;
+    }
+    .info strong { color: #60a5fa; }
+    .footer { color: #3f3f46; font-size: 0.625rem; margin-top: 2rem; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="logo"><span>m</span></div>
+    <div class="logo">m</div>
     <h1>mathitout</h1>
     <p>a practice-first math app. pick a topic. get a problem. write your working. get it checked.</p>
 
-    <div class="card">
-      <div class="card-title">// service status</div>
-      <div class="status-row">
-        <span>target</span>
-        <span id="target">checking...</span>
-      </div>
-      <div class="status-row">
-        <span>status</span>
-        <span id="status"><span class="loader"></span>waking up...</span>
-      </div>
-      <div class="status-row" id="timeRow" style="display:none">
-        <span>response time</span>
-        <span id="time"></span>
-      </div>
+    <div class="info">
+      <strong>// bookmark this URL</strong><br/>
+      this static page never goes to sleep. it checks the main app and forwards you when it's ready. no more "this page couldn't load" errors.
     </div>
 
-    <div id="result"></div>
-
-    <div>
-      <button class="btn" id="enterBtn" onclick="enter()" disabled>enter app</button>
-      <button class="btn btn-secondary" onclick="retry()">↻ retry</button>
+    <div class="status">
+      <div class="status-title">// main app status</div>
+      <div class="row">
+        <span class="k">endpoint</span>
+        <span class="v" id="endpoint">checking...</span>
+      </div>
+      <div class="row">
+        <span class="k">status</span>
+        <span class="v" id="status">
+          <span class="loader"></span>checking
+        </span>
+      </div>
+      <div class="row">
+        <span class="k">response</span>
+        <span class="v" id="response">—</span>
+      </div>
+      <div class="row">
+        <span class="k">attempt</span>
+        <span class="v" id="attempt">0</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="bar" style="width: 0%"></div></div>
     </div>
 
-    <p class="footer">// this page never goes to sleep · keeps your app warm</p>
+    <div class="actions">
+      <button class="btn btn-primary" id="enterBtn" onclick="enter()" disabled>
+        <span>→</span> enter app
+      </button>
+      <button class="btn btn-secondary" onclick="check()">
+        <span>↻</span> retry
+      </button>
+    </div>
+
+    <p class="footer">
+      this page runs on render's free static hosting — it never sleeps.<br/>
+      the main app behind it does, but we keep it warm for you.
+    </p>
   </div>
 
   <script>
-    const APP_URL = "https://mathlearn-wuda.onrender.com";
-    const TARGET = APP_URL + "/api/health";
+    const APP_HOST = "mathlearn-wuda.onrender.com";
+    const APP_URL = "https://" + APP_HOST;
+    const HEALTH_URL = APP_URL + "/api/health";
+    const RETRY_DELAYS = [0, 2000, 3000, 4000, 5000, 7000, 10000, 15000];
+    const TIMEOUT_MS = 90000;
+
+    let attempts = 0;
+    let checking = false;
+    let successTimer = null;
+
+    function $(id) { return document.getElementById(id); }
+
+    function setStatus(state, html) {
+      const el = $("status");
+      el.innerHTML = html;
+      if (state === "ok") el.style.color = "#4ade80";
+      else if (state === "warming") el.style.color = "#fbbf24";
+      else el.style.color = "#ef4444";
+    }
+
+    function setEndpoint(text) { $("endpoint").textContent = text; }
+    function setResponse(text) { $("response").textContent = text; }
+    function setBar(pct) { $("bar").style.width = pct + "%"; }
 
     async function check() {
-      const statusEl = document.getElementById("status");
-      const targetEl = document.getElementById("target");
-      const timeEl = document.getElementById("time");
-      const timeRow = document.getElementById("timeRow");
-      const resultEl = document.getElementById("result");
-      const btn = document.getElementById("enterBtn");
-
-      targetEl.textContent = new URL(APP_URL).host;
-      statusEl.innerHTML = '<span class="loader"></span>checking...';
-      resultEl.innerHTML = "";
-      btn.disabled = true;
+      if (checking) return;
+      checking = true;
+      attempts++;
+      $("attempt").textContent = String(attempts);
+      setEndpoint(APP_HOST);
+      setStatus("warming", '<span class="dot amber"></span>waking up...');
+      setResponse("—");
 
       const start = Date.now();
       try {
         const ctrl = new AbortController();
-        const timeout = setTimeout(() => ctrl.abort(), 45000);
-        const res = await fetch(TARGET, { signal: ctrl.signal, cache: "no-store", mode: "cors" });
+        const timeout = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+        const res = await fetch(HEALTH_URL, {
+          signal: ctrl.signal,
+          cache: "no-store",
+          mode: "cors",
+        });
         clearTimeout(timeout);
         const elapsed = Date.now() - start;
 
         if (res.ok) {
-          statusEl.textContent = "ready";
-          timeEl.textContent = elapsed + "ms";
-          timeRow.style.display = "flex";
-          resultEl.innerHTML = '<div class="result ok">✓ service is running. ready to go.</div>';
-          btn.disabled = false;
-        } else {
-          statusEl.textContent = "degraded (" + res.status + ")";
-          resultEl.innerHTML = '<div class="result err">⚠ service returned ' + res.status + '. try again in a moment.</div>';
+          setStatus("ok", '<span class="dot green"></span>ready');
+          setResponse(elapsed + "ms");
+          setBar(100);
+          $("enterBtn").disabled = false;
+          if (successTimer) clearTimeout(successTimer);
+          successTimer = setTimeout(() => enter(), 1500);
+          return;
         }
+        setStatus("error", '<span class="dot red"></span>error ' + res.status);
+        setResponse(elapsed + "ms");
+        setBar(20);
+        scheduleRetry();
       } catch (e) {
         const elapsed = Date.now() - start;
-        statusEl.textContent = "cold start";
-        timeEl.textContent = elapsed + "ms (timed out)";
-        timeRow.style.display = "flex";
-        resultEl.innerHTML = '<div class="result err">⏳ the service is waking up. free-tier render takes 30-60s on first visit. we\'ll auto-retry...</div>';
-        setTimeout(check, 5000);
+        setStatus("warming", '<span class="dot amber"></span>cold start (' + elapsed + 'ms)');
+        setBar(Math.min(10 + attempts * 10, 85));
+        scheduleRetry();
+      } finally {
+        checking = false;
       }
+    }
+
+    function scheduleRetry() {
+      if (successTimer) clearTimeout(successTimer);
+      const next = RETRY_DELAYS[Math.min(attempts, RETRY_DELAYS.length - 1)];
+      setTimeout(check, next);
     }
 
     function enter() {
       window.location.href = APP_URL;
     }
 
-    function retry() {
-      check();
+    // Service worker: intercept navigation requests and warm up the origin first
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
+    // Start checking
     check();
   </script>
 </body>
