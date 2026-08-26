@@ -2,20 +2,17 @@ name: Keep Alive Backup
 
 on:
   schedule:
-    # Offset by 2.5 minutes from the primary cron to close any gaps
-    - cron: "2-59/5 * * * *"
+    # Offset by 2 minutes from primary for redundancy
+    - cron: "2,6,10,14,18,22,26,30,34,38,42,46,50,54,58 * * * *"
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
-      - name: Ping mathitout health endpoint (backup)
+      - name: Backup ping
         run: |
-          for i in 1 2 3; do
-            code=$(curl -sf -m 50 -o /dev/null -w "%{http_code}" https://mathlearn-wuda.onrender.com/api/health || echo "000")
-            echo "backup ping $i: $code"
-            if [ "$code" = "200" ]; then exit 0; fi
-            sleep 5
-          done
-          exit 0
+          echo "backup ping at $(date)"
+          curl -sf -m 55 -o /dev/null "https://mathlearn-wuda.onrender.com/api/health" || true
+          echo "done"

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>mathitout — figure it out, properly</title>
+  <meta name="description" content="A practice-first math app. Pick a topic, get a problem, write your working, get it checked." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23c4f000'/%3E%3Ctext x='50' y='68' font-size='72' font-weight='bold' text-anchor='middle' font-family='monospace' fill='%230a0a0a'%3Em%3C/text%3E%3C/svg%3E" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #fafafa;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .wrap { max-width: 32rem; width: 100%; text-align: center; }
+    .logo {
+      width: 4rem; height: 4rem;
+      background: #c4f000;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .logo span { color: #0a0a0a; font-weight: bold; font-size: 1.875rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    p { color: #71717a; font-size: 0.875rem; line-height: 1.6; margin-bottom: 1.5rem; }
+    .card {
+      border: 1px solid #27272a;
+      background: #0d0d0d;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+    .card-title {
+      color: #52525b;
+      font-size: 0.625rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .status-row { display: flex; justify-content: space-between; margin: 0.25rem 0; font-size: 0.75rem; }
+    .status-row span:first-child { color: #a1a1aa; }
+    .status-row span:last-child { color: #c4f000; font-family: monospace; }
+    .btn {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: #c4f000;
+      color: #0a0a0a;
+      text-decoration: none;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.875rem;
+    }
+    .btn:hover { background: #b3d800; }
+    .btn-secondary {
+      background: transparent;
+      color: #fafafa;
+      border: 1px solid #27272a;
+      margin-left: 0.5rem;
+    }
+    .btn-secondary:hover { border-color: #c4f000; color: #c4f000; background: transparent; }
+    .dot {
+      display: inline-block; width: 0.5rem; height: 0.5rem;
+      border-radius: 50%; background: #c4f000; margin-right: 0.5rem;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .loader {
+      width: 1rem; height: 1rem;
+      border: 2px solid #27272a;
+      border-top-color: #c4f000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .result { margin-top: 1rem; padding: 0.75rem; border: 1px solid; font-size: 0.75rem; }
+    .result.ok { border-color: #c4f000; background: #c4f00008; color: #c4f000; }
+    .result.err { border-color: #ef4444; background: #ef444408; color: #ef4444; }
+    .footer { color: #52525b; font-size: 0.625rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo"><span>m</span></div>
+    <h1>mathitout</h1>
+    <p>a practice-first math app. pick a topic. get a problem. write your working. get it checked.</p>
+
+    <div class="card">
+      <div class="card-title">// service status</div>
+      <div class="status-row">
+        <span>target</span>
+        <span id="target">checking...</span>
+      </div>
+      <div class="status-row">
+        <span>status</span>
+        <span id="status"><span class="loader"></span>waking up...</span>
+      </div>
+      <div class="status-row" id="timeRow" style="display:none">
+        <span>response time</span>
+        <span id="time"></span>
+      </div>
+    </div>
+
+    <div id="result"></div>
+
+    <div>
+      <button class="btn" id="enterBtn" onclick="enter()" disabled>enter app</button>
+      <button class="btn btn-secondary" onclick="retry()">↻ retry</button>
+    </div>
+
+    <p class="footer">// this page never goes to sleep · keeps your app warm</p>
+  </div>
+
+  <script>
+    const APP_URL = "https://mathlearn-wuda.onrender.com";
+    const TARGET = APP_URL + "/api/health";
+
+    async function check() {
+      const statusEl = document.getElementById("status");
+      const targetEl = document.getElementById("target");
+      const timeEl = document.getElementById("time");
+      const timeRow = document.getElementById("timeRow");
+      const resultEl = document.getElementById("result");
+      const btn = document.getElementById("enterBtn");
+
+      targetEl.textContent = new URL(APP_URL).host;
+      statusEl.innerHTML = '<span class="loader"></span>checking...';
+      resultEl.innerHTML = "";
+      btn.disabled = true;
+
+      const start = Date.now();
+      try {
+        const ctrl = new AbortController();
+        const timeout = setTimeout(() => ctrl.abort(), 45000);
+        const res = await fetch(TARGET, { signal: ctrl.signal, cache: "no-store", mode: "cors" });
+        clearTimeout(timeout);
+        const elapsed = Date.now() - start;
+
+        if (res.ok) {
+          statusEl.textContent = "ready";
+          timeEl.textContent = elapsed + "ms";
+          timeRow.style.display = "flex";
+          resultEl.innerHTML = '<div class="result ok">✓ service is running. ready to go.</div>';
+          btn.disabled = false;
+        } else {
+          statusEl.textContent = "degraded (" + res.status + ")";
+          resultEl.innerHTML = '<div class="result err">⚠ service returned ' + res.status + '. try again in a moment.</div>';
+        }
+      } catch (e) {
+        const elapsed = Date.now() - start;
+        statusEl.textContent = "cold start";
+        timeEl.textContent = elapsed + "ms (timed out)";
+        timeRow.style.display = "flex";
+        resultEl.innerHTML = '<div class="result err">⏳ the service is waking up. free-tier render takes 30-60s on first visit. we\'ll auto-retry...</div>';
+        setTimeout(check, 5000);
+      }
+    }
+
+    function enter() {
+      window.location.href = APP_URL;
+    }
+
+    function retry() {
+      check();
+    }
+
+    check();
+  </script>
+</body>
+</html>
