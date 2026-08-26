@@ -9,6 +9,8 @@ import { RealtimeProvider } from "@/components/realtime-provider";
 import { KeepAlive } from "@/components/keep-alive";
 import { ColdStartWatchdog } from "@/components/cold-start-watchdog";
 import { CommandPalette } from "@/components/command-palette";
+import { ShortcutsPalette } from "@/components/shortcuts-palette";
+import { GlobalShortcuts } from "@/components/global-shortcuts";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -33,6 +35,8 @@ export function Providers({ children }: { children: ReactNode }) {
             <KeepAlive />
             <ColdStartWatchdog />
             <CommandPalette />
+            <ShortcutsPalette />
+            <GlobalShortcuts />
             {children}
           </RealtimeProvider>
           <Toaster />

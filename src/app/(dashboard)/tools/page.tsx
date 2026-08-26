@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { evaluate } from "mathjs";
-import { Calculator, Sigma, Grid3x3, Ruler, LineChart } from "lucide-react";
+import { Calculator, Sigma, Grid3x3, Ruler, LineChart, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { GraphingCalculator } from "@/components/graphing-calculator";
-import { MatrixSolver } from "@/components/matrix-solver";
-import { StudyMusic } from "@/components/study-music";
+
+const GraphingCalculator = lazy(() => import("@/components/graphing-calculator").then(m => ({ default: m.GraphingCalculator })));
+const MatrixSolver = lazy(() => import("@/components/matrix-solver").then(m => ({ default: m.MatrixSolver })));
+const StudyMusic = lazy(() => import("@/components/study-music").then(m => ({ default: m.StudyMusic })));
+
+function ToolLoader() {
+  return (
+    <div className="border border-zinc-800/60 bg-[#0d0d0d] p-12 flex items-center justify-center gap-3">
+      <Loader2 className="h-4 w-4 animate-spin text-[#c4f000]" />
+      <span className="text-sm text-zinc-500">loading tool...</span>
+    </div>
+  );
+}
 
 export function ScientificCalculator() {
   const [display, setDisplay] = useState("0");
@@ -245,13 +255,23 @@ export default function ToolsPage() {
       </div>
 
       <div className="mt-6">
-        {active === "graphing" && <GraphingCalculator />}
-        {active === "matrix" && <MatrixSolver />}
+        {active === "graphing" && (
+          <Suspense fallback={<ToolLoader />}>
+            <GraphingCalculator />
+          </Suspense>
+        )}
+        {active === "matrix" && (
+          <Suspense fallback={<ToolLoader />}>
+            <MatrixSolver />
+          </Suspense>
+        )}
         {active === "scientific" && <ScientificCalculator />}
         {active === "converter" && <UnitConverter />}
         {active === "music" && (
           <div className="max-w-md">
-            <StudyMusic />
+            <Suspense fallback={<ToolLoader />}>
+              <StudyMusic />
+            </Suspense>
           </div>
         )}
       </div>

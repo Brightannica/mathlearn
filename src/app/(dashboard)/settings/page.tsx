@@ -11,7 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Bell, Palette, Shield, User, DollarSign, LockKeyhole, Loader2 } from "lucide-react";
+import {
+  Settings as SettingsIcon, Bell, Palette, Shield, User, DollarSign, LockKeyhole, Loader2, Database, KeyRound,
+} from "lucide-react";
+import { DataExportImport } from "@/components/data-export-import";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -398,36 +401,17 @@ export default function SettingsPage() {
           <CardTitle className="flex items-center gap-2"><LockKeyhole className="h-5 w-5" /> Account</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full"
             onClick={() => toast({ title: "Password change", description: "Password reset link sent to your email." })}
           >
             Change Password
           </Button>
-          
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={handleDownloadData}
-          >
-            Download Data
-          </Button>
-          
-          <Button 
-            variant="destructive"
-            className="w-full"
-            onClick={() => {
-              const confirmed = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
-              if (confirmed) {
-                toast({ title: "Account deletion requested", description: "This would be processed in a future update.", variant: "destructive" });
-              }
-            }}
-          >
-            Delete Account
-          </Button>
         </CardContent>
       </Card>
+
+      <DataExportImport />
     </div>
   );
 }

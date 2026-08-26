@@ -64,6 +64,7 @@ const navigation = [
   { name: "Tools", href: "/tools", icon: Calculator },
   { name: "Visualizations", href: "/visualizations", icon: FlaskConical },
   { name: "Progress", href: "/progress", icon: BarChart3 },
+  { name: "Analytics", href: "/analytics", icon: Flame },
   { name: "Streaks", href: "/streaks", icon: Flame },
   { name: "Achievements", href: "/achievements", icon: Trophy },
   { name: "Community", href: "/community", icon: MessageSquare },
