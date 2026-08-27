@@ -11,6 +11,7 @@ import { ColdStartWatchdog } from "@/components/cold-start-watchdog";
 import { CommandPalette } from "@/components/command-palette";
 import { ShortcutsPalette } from "@/components/shortcuts-palette";
 import { GlobalShortcuts } from "@/components/global-shortcuts";
+import { NotificationTicker } from "@/components/notification-ticker";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -37,6 +38,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <CommandPalette />
             <ShortcutsPalette />
             <GlobalShortcuts />
+            <NotificationTicker />
             {children}
           </RealtimeProvider>
           <Toaster />
