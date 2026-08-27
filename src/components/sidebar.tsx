@@ -31,6 +31,8 @@ import {
   UserPlus,
   Send,
   Code2,
+  Sparkles,
+  Circle,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
@@ -53,6 +55,8 @@ const navigation = [
   { name: "Search", href: "/search", icon: Search },
   { name: "Onboarding", href: "/onboarding", icon: Flame },
   { name: "Learning Path", href: "/path", icon: Compass },
+  { name: "Formula Practice", href: "/formulas", icon: Sparkles },
+  { name: "Unit Circle", href: "/unit-circle", icon: Circle },
   { name: "Notifications", href: "/notifications", icon: Flame },
   { name: "Quiz", href: "/quiz", icon: Brain },
   { name: "Courses", href: "/learn", icon: BookOpen },
