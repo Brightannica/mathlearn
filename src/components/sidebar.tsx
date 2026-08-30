@@ -37,6 +37,7 @@ import {
   LineChart,
   Hexagon,
   TrendingUp,
+  Activity,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
@@ -66,6 +67,7 @@ const navigation = [
   { name: "Glossary", href: "/glossary", icon: BookText },
   { name: "Shape Explorer", href: "/shapes", icon: Hexagon },
   { name: "Quadratic Solver", href: "/quadratic", icon: TrendingUp },
+  { name: "Exponentials", href: "/exponentials", icon: Activity },
   { name: "Notifications", href: "/notifications", icon: Flame },
   { name: "Quiz", href: "/quiz", icon: Brain },
   { name: "Courses", href: "/learn", icon: BookOpen },
