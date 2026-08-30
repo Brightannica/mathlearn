@@ -34,6 +34,7 @@ import {
   Sparkles,
   Circle,
   Layers,
+  LineChart,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
@@ -59,6 +60,8 @@ const navigation = [
   { name: "Formula Practice", href: "/formulas", icon: Sparkles },
   { name: "Unit Circle", href: "/unit-circle", icon: Circle },
   { name: "Fractions", href: "/fractions", icon: Layers },
+  { name: "Linear Equations", href: "/linear", icon: LineChart },
+  { name: "Glossary", href: "/glossary", icon: BookText },
   { name: "Notifications", href: "/notifications", icon: Flame },
   { name: "Quiz", href: "/quiz", icon: Brain },
   { name: "Courses", href: "/learn", icon: BookOpen },
