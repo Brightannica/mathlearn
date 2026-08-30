@@ -71,6 +71,7 @@ const navigation = [
   { name: "Exponentials", href: "/exponentials", icon: Activity },
   { name: "Sine Wave", href: "/sine-wave", icon: Music },
   { name: "Derivatives", href: "/derivatives", icon: TrendingUp },
+  { name: "Sequences", href: "/sequences", icon: BarChart3 },
   { name: "Notifications", href: "/notifications", icon: Flame },
   { name: "Quiz", href: "/quiz", icon: Brain },
   { name: "Courses", href: "/learn", icon: BookOpen },
